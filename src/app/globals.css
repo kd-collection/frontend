@@ -1,26 +1,190 @@
 @import "tailwindcss";
 
+/* 
+  NOTE: The @theme block below is standard Tailwind CSS v4 syntax. 
+  Some IDEs/Editors may flag this as an "Unknown at rule" warning. 
+  This is a false positive and safe to ignore.
+*/
+
+/* 
+  --- Obsidian Elite Design System --- 
+  A premium, high-contrast dark theme for enterprise-grade applications.
+*/
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Core Base Colors */
+  --bg-app: #030712;
+  /* Gray 950 - Main background */
+  --bg-card: #0b1121;
+  /* Deep Gray - Card background */
+  --bg-card-hover: #161e32;
+  /* Lighter Gray - Card hover state */
+
+  /* Brand Identity - Indigo & Violet */
+  --primary: #4f46e5;
+  --primary-foreground: #e0e7ff;
+  --primary-glow: rgba(79, 70, 229, 0.4);
+
+  /* Success & Profit - Emerald */
+  --secondary: #10b981;
+  --secondary-foreground: #d1fae5;
+
+  /* Critical & Risk - Rose */
+  --destructive: #f43f5e;
+  --destructive-foreground: #ffe4e6;
+
+  /* Warning & Attention - Amber */
+  --accent: #f59e0b;
+
+  /* Typography - Slate */
+  --text-main: #f8fafc;
+  /* Slate 50 */
+  --text-muted: #94a3b8;
+  /* Slate 400 */
+  --text-dim: #64748b;
+  /* Slate 500 */
+
+  /* Glassmorphism Tokens */
+  --glass-bg: rgba(11, 17, 33, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.12);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  /* Mapping CSS Variables to Tailwind Utilities */
+  --color-app: var(--bg-app);
+  --color-card: var(--bg-card);
+  --color-card-hover: var(--bg-card-hover);
+
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-destructive: var(--destructive);
+  --color-accent: var(--accent);
+
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  --color-text-dim: var(--text-dim);
+
+  --color-border-subtle: var(--glass-border);
+
+  /* Custom Animations */
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-fade-in-up: fadeInUp 0.5s ease-out forwards;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* --- Animation Keyframes --- */
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
   }
 }
 
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 0.1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Global Resets & Utilities --- */
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth Scrolling for the whole app */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection Color (Premium Feel) */
+::selection {
+  background-color: rgba(79, 70, 229, 0.3);
+  color: #fff;
+}
+
+/* Custom Scrollbar - Slim & Dark */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 10px;
+  border: 1px solid var(--bg-app);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Glass Utility Class */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Cinematic Noise Overlay */
+.bg-noise {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
 }
