@@ -16,7 +16,7 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
 
     return (
         <nav className={cn("flex items-center text-sm text-text-muted mb-4", className)}>
-            <Link href="/" className="hover:text-white transition-colors">Dashboard</Link>
+            <Link href="/" className="hover:text-text-main transition-colors">Dashboard</Link>
             {paths.map((path, index) => {
                 const href = `/${paths.slice(0, index + 1).join('/')}`;
                 const isLast = index === paths.length - 1;
@@ -25,9 +25,9 @@ export default function Breadcrumbs({ className }: BreadcrumbsProps) {
                     <span key={path} className="flex items-center">
                         <span className="mx-2 opacity-50">/</span>
                         {isLast ? (
-                            <span className="text-white font-medium capitalize">{path}</span>
+                            <span className="text-text-main font-medium capitalize">{path}</span>
                         ) : (
-                            <Link href={href} className="hover:text-white transition-colors capitalize">
+                            <Link href={href} className="hover:text-text-main transition-colors capitalize">
                                 {path}
                             </Link>
                         )}

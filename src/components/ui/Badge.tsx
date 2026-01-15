@@ -6,35 +6,24 @@ interface BadgeProps {
     children: React.ReactNode;
     variant?: "default" | "success" | "warning" | "danger" | "neutral" | "outline";
     className?: string;
-    glow?: boolean;
+    glow?: boolean; // Kept for API compatibility but now handles subtle pulsing
 }
 
 export default function Badge({ children, variant = "default", className, glow = false }: BadgeProps) {
     const variants = {
-        default: "bg-primary/10 text-primary hover:bg-primary/20",
-        success: "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20",
-        warning: "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20",
-        danger: "bg-rose-500/10 text-rose-400 hover:bg-rose-500/20",
-        neutral: "bg-white/5 text-text-muted hover:bg-white/10",
-        outline: "bg-transparent border border-white/20 text-white hover:border-white/40",
-    };
-
-    const glows = {
-        default: "shadow-[0_0_10px_rgba(79,70,229,0.3)]",
-        success: "shadow-[0_0_10px_rgba(16,185,129,0.3)]",
-        warning: "shadow-[0_0_10px_rgba(245,158,11,0.3)]",
-        danger: "shadow-[0_0_10px_rgba(244,63,94,0.3)]",
-        neutral: "",
-        outline: "",
+        default: "bg-primary-subtle text-primary border-primary/20",
+        success: "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+        warning: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+        danger: "bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800",
+        neutral: "bg-slate-100 dark:bg-slate-800 text-text-muted border-border-subtle",
+        outline: "bg-transparent border-border-strong text-text-main",
     };
 
     return (
         <span className={cn(
-            "px-2.5 py-0.5 rounded-full text-xs font-semibold border border-transparent transition-all duration-300",
+            "px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors duration-300",
             variants[variant],
-            glow && glows[variant],
-            // If no specific variant defined border, add a subtle one for glass feel:
-            variant !== 'outline' && "border-white/5",
+            glow && "animate-pulse", // Subtle alive feel
             className
         )}>
             {children}

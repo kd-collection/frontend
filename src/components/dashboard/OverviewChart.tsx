@@ -24,7 +24,7 @@ const data = [
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="glass-panel p-3 rounded-xl border border-white/10 shadow-xl !bg-[rgba(17,24,39,0.9)]">
+            <div className="glass-panel p-3 rounded-xl border border-border shadow-xl !bg-card text-text-main">
                 <p className="text-xs text-text-muted mb-1 font-medium bg-transparent">{label}</p>
                 <p className="text-sm font-bold text-primary">
                     {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'IDR' }).format(payload[0].value)}
@@ -49,17 +49,17 @@ export default function OverviewChart() {
                             <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
                         </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} opacity={0.3} />
                     <XAxis
                         dataKey="name"
-                        stroke="rgba(255,255,255,0.3)"
+                        stroke="var(--text-muted)"
                         tick={{ fontSize: 12 }}
                         axisLine={false}
                         tickLine={false}
                         dy={10}
                     />
                     <YAxis
-                        stroke="rgba(255,255,255,0.3)"
+                        stroke="var(--text-muted)"
                         tick={{ fontSize: 12 }}
                         axisLine={false}
                         tickLine={false}
@@ -67,7 +67,7 @@ export default function OverviewChart() {
                     />
                     <Tooltip
                         content={<CustomTooltip />}
-                        cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 2 }}
+                        cursor={{ stroke: 'var(--text-muted)', strokeWidth: 1, strokeDasharray: '4 4' }}
                     />
                     <Area
                         type="monotone"

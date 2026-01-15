@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { formatIDR, cn } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
-import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw } from "lucide-react";
+import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Contract {
@@ -48,7 +48,6 @@ export default function ContractsPage() {
                 }
                 setLoading(false);
             } catch (e) {
-                // Simulate loading delay for effect
                 setTimeout(() => {
                     setContracts(MOCK_CONTRACTS);
                     setLoading(false);
@@ -85,23 +84,24 @@ export default function ContractsPage() {
                 <Breadcrumbs />
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-white tracking-tight">Contracts Database</h1>
-                        <p className="text-text-muted mt-1">Manage lending contracts, track payments, and assign handlers.</p>
+                        <h1 className="text-2xl font-bold text-text-main tracking-tight">Contracts Database</h1>
+                        <p className="text-sm text-text-muted mt-0.5 font-medium">Manage lending contracts, track payments, and assign handlers.</p>
                     </div>
-                    <div className="flex gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 text-text-muted hover:text-white hover:bg-white/10 transition-colors border border-white/10 text-sm font-medium">
+                    <div className="flex gap-2.5">
+                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card text-text-muted hover:text-text-main hover:bg-bg-card-hover transition-colors border border-border-subtle text-sm font-medium shadow-sm">
                             <Download className="h-4 w-4" />
-                            Export
+                            <span className="hidden sm:inline">Export</span>
                         </button>
-                        <button className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)]">
-                            + New Contract
+                        <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all shadow-sm flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            New Contract
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Filters & Actions Bar */}
-            <div className="flex flex-col md:flex-row gap-4 p-1">
+            <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1 max-w-md group">
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted group-focus-within:text-primary transition-colors" />
                     <input
@@ -109,19 +109,19 @@ export default function ContractsPage() {
                         placeholder="Search by Contract No or Name..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:bg-white/10 transition-all"
+                        className="w-full bg-card border border-border-subtle rounded-lg py-2 pl-10 pr-4 text-sm text-text-main placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all shadow-sm"
                     />
                 </div>
                 <div className="flex gap-2">
-                    <button className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-text-muted hover:text-white text-sm font-medium flex items-center gap-2 hover:bg-white/10">
+                    <button className="px-4 py-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main text-sm font-medium flex items-center gap-2 hover:bg-bg-card-hover shadow-sm transition-all">
                         <Filter className="h-4 w-4" />
                         Filters
                         {/* Filter Badge */}
-                        <span className="flex items-center justify-center bg-primary/20 text-primary text-[10px] h-5 w-5 rounded-md font-bold">2</span>
+                        <span className="flex items-center justify-center bg-primary-subtle text-primary text-[10px] h-5 w-5 rounded font-bold">2</span>
                     </button>
                     <button
-                        onClick={() => setLoading(true)} // Re-trigger loading just for visual
-                        className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-text-muted hover:text-white hover:bg-white/10 hover:rotate-180 transition-all duration-500"
+                        onClick={() => setLoading(true)}
+                        className="p-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main hover:bg-bg-card-hover hover:rotate-180 transition-all duration-500 shadow-sm"
                     >
                         <RefreshCcw className="h-4 w-4" />
                     </button>
@@ -129,10 +129,10 @@ export default function ContractsPage() {
             </div>
 
             {/* Data Table */}
-            <div className="glass-panel rounded-2xl border border-white/5 overflow-hidden flex flex-col shadow-2xl shadow-black/50">
+            <div className="rounded-xl border border-border-subtle bg-card overflow-hidden flex flex-col shadow-sm">
 
                 {/* Table Header */}
-                <div className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-white/10 bg-white/[0.02] text-xs font-bold text-text-muted uppercase tracking-wider">
+                <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm">
                     <div className="col-span-1 flex items-center">
                         <button onClick={toggleSelectAll} className="opacity-50 hover:opacity-100 transition-opacity">
                             {selectedIds.length === contracts.length && contracts.length > 0 ? (
@@ -142,7 +142,7 @@ export default function ContractsPage() {
                             )}
                         </button>
                     </div>
-                    <div className="col-span-2 flex items-center gap-2 cursor-pointer hover:text-white group transition-colors">
+                    <div className="col-span-2 flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors">
                         Contract No <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <div className="col-span-3">Customer Info</div>
@@ -155,14 +155,11 @@ export default function ContractsPage() {
                 {/* Table Body */}
                 {loading ? (
                     <div className="h-96 flex flex-col items-center justify-center gap-4">
-                        <div className="h-10 w-10 relative">
-                            <span className="absolute inset-0 border-4 border-primary/20 rounded-full animate-ping"></span>
-                            <span className="absolute inset-0 border-4 border-t-primary rounded-full animate-spin"></span>
-                        </div>
+                        <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
                         <p className="text-sm font-medium text-text-muted animate-pulse">Syncing Database...</p>
                     </div>
                 ) : (
-                    <div className="divide-y divide-white/5 bg-white/[0.01]">
+                    <div className="divide-y divide-border-subtle bg-card">
                         <AnimatePresence>
                             {filteredContracts.map((contract, i) => {
                                 const isSelected = selectedIds.includes(contract.nid);
@@ -174,8 +171,8 @@ export default function ContractsPage() {
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ delay: i * 0.03, duration: 0.2 }}
                                         className={cn(
-                                            "grid grid-cols-12 gap-4 px-6 py-4 items-center transition-all duration-200 group relative",
-                                            isSelected ? "bg-primary/[0.08]" : "hover:bg-white/[0.03]"
+                                            "grid grid-cols-12 gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative",
+                                            isSelected ? "bg-primary-subtle" : "hover:bg-bg-card-hover"
                                         )}
                                     >
                                         <div className="col-span-1 flex items-center z-10">
@@ -183,7 +180,7 @@ export default function ContractsPage() {
                                                 {isSelected ? (
                                                     <CheckSquare className="h-4 w-4 text-primary" />
                                                 ) : (
-                                                    <Square className="h-4 w-4 text-text-muted group-hover:text-white transition-colors" />
+                                                    <Square className="h-4 w-4 text-text-muted group-hover:text-text-main transition-colors" />
                                                 )}
                                             </button>
                                         </div>
@@ -193,19 +190,19 @@ export default function ContractsPage() {
                                         </div>
 
                                         <div className="col-span-3">
-                                            <p className="font-semibold text-white text-sm">{contract.cname || "Unknown Customer"}</p>
-                                            <p className="text-[10px] text-text-muted mt-0.5">Due: {contract.darea_date}</p>
+                                            <p className="font-semibold text-text-main text-sm">{contract.cname || "Unknown Customer"}</p>
+                                            <p className="text-[11px] text-text-muted mt-0.5">Due: {contract.darea_date}</p>
                                         </div>
 
                                         <div className="col-span-2 text-right">
-                                            <p className="text-sm font-medium text-white">{formatIDR(contract.noutstanding)}</p>
+                                            <p className="text-sm font-medium text-text-main">{formatIDR(contract.noutstanding)}</p>
                                             {contract.narrears > 0 && (
-                                                <p className="text-[10px] text-rose-400 font-medium">+{formatIDR(contract.narrears)} Arrears</p>
+                                                <p className="text-[10px] text-destructive font-medium">+{formatIDR(contract.narrears)} Arrears</p>
                                             )}
                                         </div>
 
                                         <div className="col-span-2 flex items-center gap-2">
-                                            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 text-[10px] font-bold text-white flex items-center justify-center">
+                                            <div className="h-6 w-6 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-[10px] font-bold text-primary flex items-center justify-center uppercase border border-primary-subtle">
                                                 {(contract.chandler || "A").charAt(0)}
                                             </div>
                                             <span className="text-xs text-text-muted">{contract.chandler || "Unassigned"}</span>
@@ -218,14 +215,14 @@ export default function ContractsPage() {
                                         </div>
 
                                         <div className="col-span-1 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button className="p-2 rounded-lg hover:bg-white/10 text-text-muted hover:text-white transition-colors">
+                                            <button className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-text-main transition-colors">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </button>
                                         </div>
 
-                                        {/* Selection Glow */}
+                                        {/* Selection Border Indicator */}
                                         {isSelected && (
-                                            <div className="absolute inset-0 border-l-2 border-primary bg-primary/[0.02] pointer-events-none" />
+                                            <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
                                         )}
                                     </motion.div>
                                 );
@@ -247,11 +244,11 @@ export default function ContractsPage() {
                 )}
 
                 {/* Pagination Footer */}
-                <div className="flex items-center justify-between px-6 py-4 border-t border-white/5 bg-white/[0.02]">
+                <div className="flex items-center justify-between px-6 py-3 border-t border-border-subtle bg-bg-app/30 backdrop-blur-sm">
                     <p className="text-xs text-text-muted">Showing {filteredContracts.length} of {contracts.length} results</p>
                     <div className="flex gap-2">
-                        <button className="px-3 py-1 text-xs rounded-lg border border-white/10 text-white disabled:opacity-50 hover:bg-white/5" disabled>Previous</button>
-                        <button className="px-3 py-1 text-xs rounded-lg border border-white/10 text-white hover:bg-white/5">Next</button>
+                        <button className="px-3 py-1 text-xs rounded-lg border border-border-subtle text-text-main disabled:opacity-50 hover:bg-bg-card-hover" disabled>Previous</button>
+                        <button className="px-3 py-1 text-xs rounded-lg border border-border-subtle text-text-main hover:bg-bg-card-hover">Next</button>
                     </div>
                 </div>
             </div>
