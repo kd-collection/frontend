@@ -15,12 +15,12 @@ interface StatsCardProps {
 
 export default function StatsCard({ label, value, trend, trendUp, icon: Icon, color = "primary", className }: StatsCardProps) {
 
-    // Semantic mapping
+    // Semantic mapping - Unified styling pattern
     const colorStyles = {
-        primary: "text-primary bg-primary-subtle border-primary-subtle",
-        secondary: "text-secondary bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30",
-        accent: "text-accent bg-sky-50 dark:bg-sky-900/10 border-sky-100 dark:border-sky-800/30",
-        destructive: "text-destructive bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/30",
+        primary: "text-primary bg-primary-subtle border-primary/20",
+        secondary: "text-primary bg-primary-subtle border-primary/20",
+        accent: "text-primary bg-primary-subtle border-primary/20",
+        destructive: "text-rose-500 bg-rose-500/10 border-rose-500/20",
     }[color];
 
     return (

@@ -76,48 +76,48 @@
 }
 
 .dark {
-  /* --- DARK MODE: "Deep Blue" --- */
+  /* --- DARK MODE: "Obsidian Pro" --- */
 
-  /* Surfaces */
-  --bg-app: #0f172a;
-  /* Slate 900 */
-  --bg-card: #1e293b;
-  /* Slate 800 */
-  --bg-card-hover: #334155;
-  /* Slate 700 */
+  /* Surfaces - Deep & Clean */
+  --bg-app: #09090b;
+  /* Zinc 950 - Near black */
+  --bg-card: #18181b;
+  /* Zinc 900 - Elevated surface */
+  --bg-card-hover: #27272a;
+  /* Zinc 800 */
 
-  /* Borders */
-  --border-subtle: #1e293b;
-  /* Slate 800 */
-  --border-strong: #334155;
-  /* Slate 700 */
+  /* Borders - Subtle but defined */
+  --border-subtle: #27272a;
+  /* Zinc 800 */
+  --border-strong: #3f3f46;
+  /* Zinc 700 */
 
-  /* Brand: Luminous Blue */
+  /* Brand: Vibrant Blue */
   --primary: #3b82f6;
   /* Blue 500 */
   --primary-foreground: #ffffff;
-  --primary-subtle: rgba(59, 130, 246, 0.15);
-  /* Transparent Blue */
+  --primary-subtle: rgba(59, 130, 246, 0.12);
+  /* Subtle blue glow */
 
   /* Functional */
   --secondary: #60a5fa;
   /* Blue 400 */
   --accent: #93c5fd;
   /* Blue 300 */
-  --destructive: #f87171;
-  /* Red 400 */
+  --destructive: #ef4444;
+  /* Red 500 - More vibrant */
 
-  /* Typography */
-  --text-main: #f8fafc;
-  /* Slate 50 */
-  --text-muted: #94a3b8;
-  /* Slate 400 */
-  --text-dim: #475569;
-  /* Slate 600 */
+  /* Typography - High contrast */
+  --text-main: #fafafa;
+  /* Zinc 50 - Pure white-ish */
+  --text-muted: #a1a1aa;
+  /* Zinc 400 */
+  --text-dim: #52525b;
+  /* Zinc 600 */
 
-  /* Glass - Deep usage */
-  --glass-bg: rgba(15, 23, 42, 0.8);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  /* Glass - Refined */
+  --glass-bg: rgba(24, 24, 27, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.06);
 }
 
 /* Core Foundation */
