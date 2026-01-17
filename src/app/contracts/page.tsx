@@ -2,31 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { formatIDR, cn } from "@/lib/utils";
+import { api, Contract } from "@/lib/api";
 import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-interface Contract {
-    nid: number;
-    ccontract_no: string;
-    cname: string;
-    noutstanding: number;
-    narrears: number;
-    dlast_payment?: string;
-    darea_date?: string;
-    chandler?: string;
-}
-
-// Fallback Mock Data extended
+// Fallback Mock Data
 const MOCK_CONTRACTS: Contract[] = [
     { nid: 1, ccontract_no: "CTR-2026-001", cname: "Budi Santoso", noutstanding: 5000000, narrears: 500000, darea_date: "2026-01-15", chandler: "Agent X" },
     { nid: 2, ccontract_no: "CTR-2026-002", cname: "Amanda Manopo", noutstanding: 12500000, narrears: 0, darea_date: "2026-01-20", chandler: "Agent Y" },
     { nid: 3, ccontract_no: "CTR-2026-003", cname: "Raffi Ahmad", noutstanding: 75000000, narrears: 12000000, darea_date: "2026-01-10", chandler: "Agent Z" },
-    { nid: 4, ccontract_no: "CTR-2026-004", cname: "Deddy Corbuzier", noutstanding: 2500000, narrears: 0, darea_date: "2026-02-01", chandler: "Agent X" },
-    { nid: 5, ccontract_no: "CTR-2026-005", cname: "Nagita Slavina", noutstanding: 15000000, narrears: 2500000, darea_date: "2026-01-18", chandler: "Agent Y" },
-    { nid: 6, ccontract_no: "CTR-2026-006", cname: "Taufik Hidayat", noutstanding: 8500000, narrears: 1500000, darea_date: "2026-01-25", chandler: "Agent Z" },
-    { nid: 7, ccontract_no: "CTR-2026-007", cname: "Susi Susanti", noutstanding: 3000000, narrears: 0, darea_date: "2026-02-05", chandler: "Agent X" },
 ];
 
 export default function ContractsPage() {
@@ -35,26 +21,22 @@ export default function ContractsPage() {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
 
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const res = await fetch('http://localhost:3000/api/contracts');
-                if (!res.ok) throw new Error("Failed to fetch");
-                const data = await res.json();
-                if (data && data.data) {
-                    setContracts(data.data);
-                } else {
-                    setContracts(MOCK_CONTRACTS);
-                }
-                setLoading(false);
-            } catch (e) {
-                setTimeout(() => {
-                    setContracts(MOCK_CONTRACTS);
-                    setLoading(false);
-                }, 800);
-            }
+    const fetchContracts = async () => {
+        setLoading(true);
+        const response = await api.getContracts();
+
+        if (response.success && response.data) {
+            setContracts(response.data);
+        } else {
+            // Fallback to mock data if API fails
+            console.warn('API unavailable, using mock data');
+            setContracts(MOCK_CONTRACTS);
         }
-        fetchData();
+        setLoading(false);
+    };
+
+    useEffect(() => {
+        fetchContracts();
     }, []);
 
     const toggleSelectAll = () => {
@@ -73,10 +55,12 @@ export default function ContractsPage() {
         }
     };
 
-    const filteredContracts = contracts.filter(c =>
-        c.cname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.ccontract_no.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredContracts = contracts.filter(c => {
+        const name = (c.customer_name || c.cname || '').toLowerCase();
+        const contractNo = (c.ccontract_no || '').toLowerCase();
+        const query = searchQuery.toLowerCase();
+        return name.includes(query) || contractNo.includes(query);
+    });
 
     return (
         <div className="space-y-6">
@@ -120,7 +104,7 @@ export default function ContractsPage() {
                         <span className="flex items-center justify-center bg-primary-subtle text-primary text-[10px] h-5 w-5 rounded font-bold">2</span>
                     </button>
                     <button
-                        onClick={() => setLoading(true)}
+                        onClick={() => fetchContracts()}
                         className="p-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main hover:bg-bg-card-hover hover:rotate-180 transition-all duration-500 shadow-sm"
                     >
                         <RefreshCcw className="h-4 w-4" />
@@ -190,14 +174,14 @@ export default function ContractsPage() {
                                         </div>
 
                                         <div className="col-span-3">
-                                            <p className="font-semibold text-text-main text-sm">{contract.cname || "Unknown Customer"}</p>
-                                            <p className="text-[11px] text-text-muted mt-0.5">Due: {contract.darea_date}</p>
+                                            <p className="font-semibold text-text-main text-sm">{contract.customer_name || contract.cname || "Unknown Customer"}</p>
+                                            <p className="text-[11px] text-text-muted mt-0.5">Due: {contract.darea_date ? new Date(contract.darea_date).toLocaleDateString() : 'N/A'}</p>
                                         </div>
 
                                         <div className="col-span-2 text-right">
-                                            <p className="text-sm font-medium text-text-main">{formatIDR(contract.noutstanding)}</p>
-                                            {contract.narrears > 0 && (
-                                                <p className="text-[10px] text-destructive font-medium">+{formatIDR(contract.narrears)} Arrears</p>
+                                            <p className="text-sm font-medium text-text-main">{formatIDR(Number(contract.noutstanding))}</p>
+                                            {Number(contract.narrears) > 0 && (
+                                                <p className="text-[10px] text-destructive font-medium">+{formatIDR(Number(contract.narrears))} Arrears</p>
                                             )}
                                         </div>
 
@@ -209,8 +193,8 @@ export default function ContractsPage() {
                                         </div>
 
                                         <div className="col-span-1 flex justify-center">
-                                            <Badge variant={contract.narrears > 0 ? "danger" : "success"} glow={contract.narrears > 0}>
-                                                {contract.narrears > 0 ? "Overdue" : "On Track"}
+                                            <Badge variant={Number(contract.narrears) > 0 ? "danger" : "success"} glow={Number(contract.narrears) > 0}>
+                                                {Number(contract.narrears) > 0 ? "Overdue" : "On Track"}
                                             </Badge>
                                         </div>
 
