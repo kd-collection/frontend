@@ -117,7 +117,7 @@ export default function ContractsPage() {
 
                 {/* Table Header */}
                 <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm">
-                    <div className="col-span-1 flex items-center">
+                    <div className="col-span-1 flex items-center gap-2">
                         <button onClick={toggleSelectAll} className="opacity-50 hover:opacity-100 transition-opacity">
                             {selectedIds.length === contracts.length && contracts.length > 0 ? (
                                 <CheckSquare className="h-4 w-4 text-primary" />
@@ -125,6 +125,7 @@ export default function ContractsPage() {
                                 <Square className="h-4 w-4" />
                             )}
                         </button>
+                        <span>#</span>
                     </div>
                     <div className="col-span-2 flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors">
                         Contract No <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -159,7 +160,7 @@ export default function ContractsPage() {
                                             isSelected ? "bg-primary-subtle" : "hover:bg-bg-card-hover"
                                         )}
                                     >
-                                        <div className="col-span-1 flex items-center z-10">
+                                        <div className="col-span-1 flex items-center gap-2 z-10">
                                             <button onClick={() => toggleSelect(contract.nid)}>
                                                 {isSelected ? (
                                                     <CheckSquare className="h-4 w-4 text-primary" />
@@ -167,6 +168,7 @@ export default function ContractsPage() {
                                                     <Square className="h-4 w-4 text-text-muted group-hover:text-text-main transition-colors" />
                                                 )}
                                             </button>
+                                            <span className="text-xs font-mono text-text-muted">{i + 1}</span>
                                         </div>
 
                                         <div className="col-span-2 font-mono text-xs text-text-muted group-hover:text-primary transition-colors font-medium">
@@ -198,7 +200,7 @@ export default function ContractsPage() {
                                             </Badge>
                                         </div>
 
-                                        <div className="col-span-1 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <div className="col-span-1 flex justify-center">
                                             <button className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-text-main transition-colors">
                                                 <MoreHorizontal className="h-4 w-4" />
                                             </button>
