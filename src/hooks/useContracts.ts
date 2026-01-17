@@ -8,12 +8,12 @@ let MOCK_CONTRACTS: Contract[] = [
     { nid: 3, ccontract_no: "CTR-2026-003", cname: "Raffi Ahmad", noutstanding: 75000000, narrears: 12000000, darea_date: "2026-01-10", chandler: "Agent Z" },
 ];
 
-export function useContracts(page: number = 1, limit: number = 10) {
+export function useContracts(page: number = 1, limit: number = 10, search: string = "") {
     return useQuery({
-        queryKey: ["contracts", page, limit],
+        queryKey: ["contracts", page, limit, search],
         queryFn: async () => {
             try {
-                const response = await api.getContracts({ page, limit });
+                const response = await api.getContracts({ page, limit, search });
 
                 // Response contains { data: Contract[], pagination: ... }
                 if (response && response.data) {
@@ -24,13 +24,22 @@ export function useContracts(page: number = 1, limit: number = 10) {
             } catch (error) {
                 if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
                     console.warn("API Error, falling back to mock data (DEMO MODE ACTIVE)", error);
+
+                    // Client-side search simulation for mock data
+                    const filtered = search
+                        ? MOCK_CONTRACTS.filter(c =>
+                            (c.cname || "").toLowerCase().includes(search.toLowerCase()) ||
+                            (c.ccontract_no || "").toLowerCase().includes(search.toLowerCase())
+                        )
+                        : MOCK_CONTRACTS;
+
                     return {
-                        data: MOCK_CONTRACTS.slice((page - 1) * limit, page * limit),
+                        data: filtered.slice((page - 1) * limit, page * limit),
                         pagination: {
                             page,
                             limit,
-                            total: MOCK_CONTRACTS.length,
-                            totalPages: Math.ceil(MOCK_CONTRACTS.length / limit)
+                            total: filtered.length,
+                            totalPages: Math.ceil(filtered.length / limit) || 1
                         }
                     };
                 }

@@ -12,14 +12,24 @@ import { useContractSettings } from "@/hooks/useContractSettings";
 import { useContracts, useDeleteContract } from "@/hooks/useContracts";
 import { CONTRACT_COLUMNS } from "@/lib/constants";
 import { useToast } from "@/components/ui/Toast";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function ContractsPage() {
     // Pagination State
     const [page, setPage] = useState(1);
     const LIMIT = 10;
 
+    // Search State
+    const [searchQuery, setSearchQuery] = useState("");
+    const debouncedSearch = useDebounce(searchQuery, 500); // 500ms delay
+
+    // Reset page when search changes
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]);
+
     // React Query Hooks
-    const { data: queryResult, isLoading, refetch, isRefetching } = useContracts(page, LIMIT);
+    const { data: queryResult, isLoading, refetch, isRefetching } = useContracts(page, LIMIT, debouncedSearch);
     const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
 
     const contracts = queryResult?.data || [];
@@ -36,7 +46,7 @@ export default function ContractsPage() {
     }, [isLoading, contracts.length, page, toast]);
 
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
-    const [searchQuery, setSearchQuery] = useState("");
+
     const [detailContract, setDetailContract] = useState<Contract | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
@@ -97,12 +107,8 @@ export default function ContractsPage() {
         }
     };
 
-    const filteredContracts = contracts.filter(c => {
-        const name = (c.customer_name || c.cname || '').toLowerCase();
-        const contractNo = (c.ccontract_no || '').toLowerCase();
-        const query = searchQuery.toLowerCase();
-        return name.includes(query) || contractNo.includes(query);
-    });
+    // Client-side filtering removed as we use server-side search
+    const filteredContracts = contracts;
 
     const gridTemplateColumns = [
         "60px", // Checkbox + #
