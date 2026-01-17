@@ -6,36 +6,12 @@ import { X, User, Phone, Mail, MapPin, Building, AlertCircle, Calendar, CreditCa
 import { formatIDR, formatDate } from "@/lib/utils";
 import { Contract } from "@/lib/api";
 import Badge from "@/components/ui/Badge";
+import { DataList, DataListItem } from "@/components/ui/DataList";
 
 interface Props {
     contract: Contract | null;
     isOpen: boolean;
     onClose: () => void;
-}
-
-function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | number | null }) {
-    return (
-        <div className="flex items-start gap-3 py-2">
-            <div className="h-8 w-8 rounded-lg bg-bg-app flex items-center justify-center flex-shrink-0">
-                <Icon className="h-4 w-4 text-text-muted" />
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-xs text-text-muted uppercase tracking-wide font-medium">{label}</p>
-                <p className="text-sm text-text-main font-medium mt-0.5 break-words">{value || "-"}</p>
-            </div>
-        </div>
-    );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-        <div className="pt-4">
-            <h3 className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3 px-1">{title}</h3>
-            <div className="space-y-1 bg-bg-app/50 rounded-lg p-3 border border-border-subtle">
-                {children}
-            </div>
-        </div>
-    );
 }
 
 export default function ContractDetailSheet({ contract, isOpen, onClose }: Props) {
@@ -104,58 +80,58 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
                             </div>
 
                             {/* Customer Info */}
-                            <Section title="Customer Information">
-                                <InfoRow icon={User} label="Name" value={contract.customer_name || contract.cname} />
-                                <InfoRow icon={CreditCard} label="NIK" value={contract.customer_nik} />
-                                <InfoRow icon={Phone} label="Phone" value={contract.customer_phone} />
-                                <InfoRow icon={Mail} label="Email" value={contract.customer_email} />
-                            </Section>
+                            <DataList title="Customer Information">
+                                <DataListItem icon={User} label="Name" value={contract.customer_name || contract.cname} />
+                                <DataListItem icon={CreditCard} label="NIK" value={contract.customer_nik} />
+                                <DataListItem icon={Phone} label="Phone" value={contract.customer_phone} />
+                                <DataListItem icon={Mail} label="Email" value={contract.customer_email} />
+                            </DataList>
 
                             {/* Address */}
-                            <Section title="Addresses">
-                                <InfoRow icon={MapPin} label="Home Address" value={contract.caddress_home} />
-                                <InfoRow icon={MapPin} label="KTP Address" value={contract.caddress_ktp} />
-                            </Section>
+                            <DataList title="Addresses">
+                                <DataListItem icon={MapPin} label="Home Address" value={contract.caddress_home} />
+                                <DataListItem icon={MapPin} label="KTP Address" value={contract.caddress_ktp} />
+                            </DataList>
 
                             {/* Work Info */}
                             {contract.coffice_name && (
-                                <Section title="Employment">
-                                    <InfoRow icon={Building} label="Company" value={contract.coffice_name} />
-                                    <InfoRow icon={MapPin} label="Office Address" value={contract.coffice_address} />
-                                </Section>
+                                <DataList title="Employment">
+                                    <DataListItem icon={Building} label="Company" value={contract.coffice_name} />
+                                    <DataListItem icon={MapPin} label="Office Address" value={contract.coffice_address} />
+                                </DataList>
                             )}
 
                             {/* Emergency Contact */}
                             {contract.cec_name && (
-                                <Section title="Emergency Contact">
-                                    <InfoRow icon={AlertCircle} label="Name" value={contract.cec_name} />
-                                    <InfoRow icon={Phone} label="Phone" value={contract.cec_phone} />
-                                    <InfoRow icon={MapPin} label="Address" value={contract.cec_address} />
-                                </Section>
+                                <DataList title="Emergency Contact">
+                                    <DataListItem icon={AlertCircle} label="Name" value={contract.cec_name} />
+                                    <DataListItem icon={Phone} label="Phone" value={contract.cec_phone} />
+                                    <DataListItem icon={MapPin} label="Address" value={contract.cec_address} />
+                                </DataList>
                             )}
 
                             {/* Loan Details */}
-                            <Section title="Loan Details">
-                                <InfoRow icon={Wallet} label="Loan Amount" value={formatIDR(Number(contract.nloan_amount) || 0)} />
-                                <InfoRow icon={Clock} label="Tenor" value={contract.ntenor ? `${contract.ntenor} bulan` : "-"} />
-                                <InfoRow icon={CreditCard} label="Arrears" value={formatIDR(Number(contract.narrears) || 0)} />
-                                <InfoRow icon={CreditCard} label="Card Count" value={contract.ncard_count} />
-                                <InfoRow icon={Wallet} label="VA Account" value={contract.cva_account} />
-                            </Section>
+                            <DataList title="Loan Details">
+                                <DataListItem icon={Wallet} label="Loan Amount" value={formatIDR(Number(contract.nloan_amount) || 0)} />
+                                <DataListItem icon={Clock} label="Tenor" value={contract.ntenor ? `${contract.ntenor} bulan` : "-"} />
+                                <DataListItem icon={CreditCard} label="Arrears" value={formatIDR(Number(contract.narrears) || 0)} />
+                                <DataListItem icon={CreditCard} label="Card Count" value={contract.ncard_count} />
+                                <DataListItem icon={Wallet} label="VA Account" value={contract.cva_account} />
+                            </DataList>
 
                             {/* Dates */}
-                            <Section title="Important Dates">
-                                <InfoRow icon={Calendar} label="Disbursement Date" value={formatDate(contract.ddisbursement)} />
-                                <InfoRow icon={Calendar} label="Last Payment" value={formatDate(contract.dlast_payment)} />
-                                <InfoRow icon={Calendar} label="Area Date" value={formatDate(contract.darea_date)} />
-                            </Section>
+                            <DataList title="Important Dates">
+                                <DataListItem icon={Calendar} label="Disbursement Date" value={formatDate(contract.ddisbursement)} />
+                                <DataListItem icon={Calendar} label="Last Payment" value={formatDate(contract.dlast_payment)} />
+                                <DataListItem icon={Calendar} label="Area Date" value={formatDate(contract.darea_date)} />
+                            </DataList>
 
                             {/* Handler */}
-                            <Section title="Assignment">
-                                <InfoRow icon={User} label="Handler" value={contract.chandler} />
-                                <InfoRow icon={MapPin} label="Area" value={contract.carea} />
-                                <InfoRow icon={CreditCard} label="Customer ID" value={contract.ccust_id} />
-                            </Section>
+                            <DataList title="Assignment">
+                                <DataListItem icon={User} label="Handler" value={contract.chandler} />
+                                <DataListItem icon={MapPin} label="Area" value={contract.carea} />
+                                <DataListItem icon={CreditCard} label="Customer ID" value={contract.ccust_id} />
+                            </DataList>
                         </div>
 
                         {/* Footer Actions */}
