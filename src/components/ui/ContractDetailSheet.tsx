@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, Phone, Mail, MapPin, Building, AlertCircle, Calendar, CreditCard, Wallet, Clock } from "lucide-react";
 import { formatIDR, formatDate } from "@/lib/utils";
@@ -12,11 +13,15 @@ interface Props {
     contract: Contract | null;
     isOpen: boolean;
     onClose: () => void;
+    onEdit: (contract: Contract) => void;
 }
 
-export default function ContractDetailSheet({ contract, isOpen, onClose }: Props) {
+export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit }: Props) {
+    const [mounted, setMounted] = useState(false);
+
     // Lock body scroll when sheet is open
     useEffect(() => {
+        setMounted(true);
         if (isOpen) {
             document.body.style.overflow = 'hidden';
         } else {
@@ -27,11 +32,9 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
         };
     }, [isOpen]);
 
-    if (!contract) return null;
+    if (!mounted || !contract) return null;
 
-    const isOverdue = Number(contract.narrears) > 0;
-
-    return (
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -41,7 +44,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/50 z-50"
+                        className="fixed inset-0 bg-black/50 z-50 outline-none"
                     />
 
                     {/* Sheet */}
@@ -50,7 +53,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
                         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                        className="fixed inset-y-0 right-0 h-full w-full max-w-lg bg-card border-l border-border-subtle shadow-2xl z-50 flex flex-col"
+                        className="fixed inset-y-0 right-0 h-screen w-full max-w-lg bg-card border-l border-border-subtle shadow-2xl z-50 flex flex-col"
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle flex-shrink-0">
@@ -74,8 +77,8 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
                                     <p className="text-xs text-text-muted">Outstanding Balance</p>
                                     <p className="text-2xl font-bold text-text-main">{formatIDR(Number(contract.noutstanding))}</p>
                                 </div>
-                                <Badge variant={isOverdue ? "danger" : "success"} glow={isOverdue}>
-                                    {isOverdue ? "Overdue" : "On Track"}
+                                <Badge variant={Number(contract.narrears) > 0 ? "danger" : "success"} glow={Number(contract.narrears) > 0}>
+                                    {Number(contract.narrears) > 0 ? "Overdue" : "On Track"}
                                 </Badge>
                             </div>
 
@@ -83,7 +86,10 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
                             <DataList title="Customer Information">
                                 <DataListItem icon={User} label="Name" value={contract.customer_name || contract.cname} />
                                 <DataListItem icon={CreditCard} label="NIK" value={contract.customer_nik} />
-                                <DataListItem icon={Phone} label="Phone" value={contract.customer_phone} />
+                                <DataListItem icon={Phone} label="Phone" value={contract.customer_phone || contract.customer_phone2} />
+                                {contract.customer_phone && contract.customer_phone2 && (
+                                    <DataListItem icon={Phone} label="Phone 2" value={contract.customer_phone2} />
+                                )}
                                 <DataListItem icon={Mail} label="Email" value={contract.customer_email} />
                             </DataList>
 
@@ -136,7 +142,12 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
 
                         {/* Footer Actions */}
                         <div className="px-6 py-4 border-t border-border-subtle flex gap-3 flex-shrink-0 bg-card z-10">
-                            <button className="flex-1 px-4 py-2 rounded-lg bg-bg-app border border-border-subtle text-text-main text-sm font-medium hover:bg-bg-card-hover transition-colors">
+                            <button
+                                onClick={() => {
+                                    onEdit(contract);
+                                    onClose();
+                                }}
+                                className="flex-1 px-4 py-2 rounded-lg bg-bg-app border border-border-subtle text-text-main text-sm font-medium hover:bg-bg-card-hover transition-colors">
                                 Edit Contract
                             </button>
                             <button className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
@@ -146,7 +157,8 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
                     </motion.div>
                 </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }
 

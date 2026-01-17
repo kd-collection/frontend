@@ -129,6 +129,7 @@ export interface Contract {
     customer_name?: string;   // From DB join
     customer_nik?: string;
     customer_phone?: string;
+    customer_phone2?: string;
     customer_email?: string;
     noutstanding: number | string;
     nloan_amount?: number | string;

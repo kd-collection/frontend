@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, AlertTriangle, Trash2, Info } from "lucide-react";
-import { useEffect } from "react";
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -53,9 +54,11 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
     const config = variantConfig[variant];
     const Icon = config.icon;
+    const [mounted, setMounted] = useState(false);
 
     // Prevent background scroll
     useEffect(() => {
+        setMounted(true);
         if (isOpen) {
             document.body.style.overflow = "hidden";
         } else {
@@ -77,9 +80,9 @@ export default function ConfirmModal({
         return () => document.removeEventListener("keydown", handleEscape);
     }, [isOpen, isLoading, onClose]);
 
-    if (!isOpen) return null;
+    if (!mounted || !isOpen) return null;
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -88,7 +91,7 @@ export default function ConfirmModal({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                        className="fixed inset-0 bg-black/60 z-50"
                         onClick={!isLoading ? onClose : undefined}
                     />
 
@@ -164,5 +167,5 @@ export default function ConfirmModal({
                 </>
             )}
         </AnimatePresence>
-    );
+        , document.body);
 }

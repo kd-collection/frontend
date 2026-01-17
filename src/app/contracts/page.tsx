@@ -589,6 +589,7 @@ export default function ContractsPage() {
                 contract={detailContract}
                 isOpen={isDetailOpen}
                 onClose={closeContractDetail}
+                onEdit={openEditModal}
             />
 
             {/* Contract Form Modal */}

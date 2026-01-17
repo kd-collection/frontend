@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, Save, PlusCircle } from "lucide-react";
 import { Contract } from "@/lib/api";
@@ -37,6 +38,7 @@ const initialFormData: FormData = {
 
 export default function ContractFormModal({ isOpen, onClose, contract }: ContractFormModalProps) {
     const [formData, setFormData] = useState<FormData>(initialFormData);
+    const [mounted, setMounted] = useState(false);
     const { toast } = useToast();
 
     const { mutate: createContract, isPending: isCreating } = useCreateContract();
@@ -47,6 +49,7 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
 
     // Prevent background scroll when modal is open
     useEffect(() => {
+        setMounted(true);
         if (isOpen) {
             document.body.style.overflow = 'hidden';
         } else {
@@ -127,9 +130,9 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
         }
     };
 
-    if (!isOpen) return null;
+    if (!mounted || !isOpen) return null;
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -138,7 +141,7 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                        className="fixed inset-0 bg-black/60 z-50"
                         onClick={onClose}
                     />
 
@@ -340,5 +343,5 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
                 </>
             )}
         </AnimatePresence>
-    );
+        , document.body);
 }
