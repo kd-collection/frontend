@@ -3,7 +3,7 @@
  * Centralized API service layer
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 interface ApiResponse<T> {
     success: boolean;
@@ -20,16 +20,20 @@ class ApiClient {
     }
 
     private async request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
+        const url = `${this.baseUrl}${endpoint}`;
+        console.log('[DEBUG api.ts] Starting fetch to:', url);
         try {
-            const response = await fetch(`${this.baseUrl}${endpoint}`, {
+            const response = await fetch(url, {
                 headers: {
                     'Content-Type': 'application/json',
                     ...options?.headers,
                 },
                 ...options,
             });
+            console.log('[DEBUG api.ts] Fetch completed, status:', response.status);
 
             const data = await response.json();
+            console.log('[DEBUG api.ts] JSON parsed:', data);
 
             if (!response.ok) {
                 return {
@@ -41,7 +45,7 @@ class ApiClient {
 
             return data;
         } catch (error) {
-            console.error('API Error:', error);
+            console.error('[DEBUG api.ts] Fetch ERROR:', error);
             return {
                 success: false,
                 message: 'Network error - please check your connection',

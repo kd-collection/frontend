@@ -23,8 +23,10 @@ export function useContracts(params: UseContractsParams = {}) {
     return useQuery({
         queryKey: ["contracts", page, limit, search, sortBy, sortOrder, handler],
         queryFn: async () => {
+            console.log('[DEBUG useContracts] queryFn started', { page, limit, search, sortBy, sortOrder, handler });
             try {
                 const response = await api.getContracts({ page, limit, search, sortBy, sortOrder, handler });
+                console.log('[DEBUG useContracts] API response received', response);
 
                 // Response contains { data: Contract[], pagination: ... }
                 if (response && response.data) {
@@ -33,6 +35,7 @@ export function useContracts(params: UseContractsParams = {}) {
 
                 throw new Error("Failed to fetch contracts");
             } catch (error) {
+                console.error('[DEBUG useContracts] ERROR in queryFn', error);
                 if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
                     console.warn("API Error, falling back to mock data (DEMO MODE ACTIVE)", error);
 

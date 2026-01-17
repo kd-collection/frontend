@@ -56,6 +56,7 @@ export default function ContractsPage() {
     );
 
     // Update URL when page or debouncedSearch changes
+    // Update URL when page or debouncedSearch changes
     useEffect(() => {
         const queryString = createQueryString({
             page: page === 1 ? null : page,
@@ -65,8 +66,12 @@ export default function ContractsPage() {
             handler: filterHandler === "" ? null : filterHandler
         });
 
-        router.push(pathname + (queryString ? `?${queryString}` : ""), { scroll: false });
-    }, [page, debouncedSearch, sortBy, sortOrder, filterHandler, createQueryString, pathname, router]);
+        const currentString = searchParams.toString();
+        // Prevent infinite loop: Only push if URL actually needs to change
+        if (queryString !== currentString) {
+            router.push(pathname + (queryString ? `?${queryString}` : ""), { scroll: false });
+        }
+    }, [page, debouncedSearch, sortBy, sortOrder, filterHandler, createQueryString, pathname, router, searchParams]);
 
     // Handlers
     const handleSort = (column: string) => {
@@ -116,6 +121,9 @@ export default function ContractsPage() {
 
     // Settings Hook
     const { visibleColumns, mounted } = useContractSettings();
+
+    // Debug: Log loading state
+    console.log('[DEBUG] ContractsPage:', { isLoading, mounted, contractsLength: contracts.length, queryResult });
 
     const openContractDetail = async (contractId: number) => {
         const response = await api.getContractById(contractId);
