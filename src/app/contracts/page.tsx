@@ -118,7 +118,6 @@ export default function ContractsPage() {
         }
     }, [isLoading, contracts.length, page, toast]);
 
-    const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
     const [detailContract, setDetailContract] = useState<Contract | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -165,18 +164,6 @@ export default function ContractsPage() {
         setDetailContract(null);
     };
 
-    const toggleSelectAll = () => {
-        if (selectedIds.length === contracts.length) {
-            setSelectedIds([]);
-        } else {
-            setSelectedIds(contracts.map(c => c.nid));
-        }
-    };
-
-    const handleDeleteSelected = async () => {
-        // Open confirmation modal instead of window.confirm
-        setDeleteTarget({ type: 'batch', ids: selectedIds });
-    };
 
     const handleSingleDelete = (id: number) => {
         setDeleteTarget({ type: 'single', ids: [id] });
@@ -200,7 +187,6 @@ export default function ContractsPage() {
         try {
             await Promise.all(promises);
             toast(`Successfully deleted ${idsToDelete.length} contract(s)`, "success");
-            setSelectedIds(prev => prev.filter(id => !idsToDelete.includes(id)));
             refetch();
         } catch (error) {
             toast("Failed to delete some contracts", "error");
@@ -209,21 +195,14 @@ export default function ContractsPage() {
         }
     };
 
-    const toggleSelect = (id: number) => {
-        if (selectedIds.includes(id)) {
-            setSelectedIds(selectedIds.filter(i => i !== id));
-        } else {
-            setSelectedIds([...selectedIds, id]);
-        }
-    };
 
     // Client-side filtering removed as we use server-side search
     const filteredContracts = contracts;
 
     const gridTemplateColumns = [
-        "60px", // Checkbox + #
+        "40px", // Row number
         ...CONTRACT_COLUMNS.filter(c => visibleColumns.includes(c.id)).map(c => c.width),
-        "50px" // Action
+        "80px" // Actions (Edit + Delete)
     ].join(" ");
 
     return (
@@ -292,21 +271,7 @@ export default function ContractsPage() {
                         />
                     </div>
                     <div className="flex gap-2">
-                        <AnimatePresence>
-                            {selectedIds.length > 0 && (
-                                <motion.button
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    onClick={handleDeleteSelected}
-                                    disabled={isDeleting}
-                                    className="px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium hover:bg-destructive/20 transition-all flex items-center gap-2"
-                                >
-                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                    <span className="hidden sm:inline">Delete ({selectedIds.length})</span>
-                                </motion.button>
-                            )}
-                        </AnimatePresence>
+
 
 
                         <button
@@ -330,14 +295,7 @@ export default function ContractsPage() {
                         className="grid gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm"
                         style={{ gridTemplateColumns }}
                     >
-                        <div className="flex items-center gap-2">
-                            <button onClick={toggleSelectAll} className="opacity-50 hover:opacity-100 transition-opacity">
-                                {selectedIds.length === contracts.length && contracts.length > 0 ? (
-                                    <CheckSquare className="h-4 w-4 text-primary" />
-                                ) : (
-                                    <Square className="h-4 w-4" />
-                                )}
-                            </button>
+                        <div className="flex items-center">
                             <span>#</span>
                         </div>
 
@@ -437,25 +395,14 @@ export default function ContractsPage() {
                     ) : (
                         <div className="divide-y divide-border-subtle bg-card">
                             {filteredContracts.map((contract, i) => {
-                                const isSelected = selectedIds.includes(contract.nid);
                                 return (
                                     <div
                                         key={contract.nid}
                                         onClick={() => openContractDetail(contract.nid)}
                                         style={{ gridTemplateColumns }}
-                                        className={cn(
-                                            "grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative cursor-pointer",
-                                            isSelected ? "bg-primary-subtle" : "hover:bg-bg-card-hover"
-                                        )}
+                                        className="grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative cursor-pointer hover:bg-bg-card-hover"
                                     >
-                                        <div className="flex items-center gap-2 z-10">
-                                            <button onClick={(e) => { e.stopPropagation(); toggleSelect(contract.nid); }}>
-                                                {isSelected ? (
-                                                    <CheckSquare className="h-4 w-4 text-primary" />
-                                                ) : (
-                                                    <Square className="h-4 w-4 text-text-muted group-hover:text-text-main transition-colors" />
-                                                )}
-                                            </button>
+                                        <div className="flex items-center z-10">
                                             <span className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</span>
                                         </div>
 
@@ -560,11 +507,6 @@ export default function ContractsPage() {
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
-
-                                        {/* Selection Border Indicator */}
-                                        {isSelected && (
-                                            <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
-                                        )}
                                     </div>
                                 );
                             })}
