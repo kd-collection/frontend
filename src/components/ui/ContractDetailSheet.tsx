@@ -3,48 +3,14 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, Phone, Mail, MapPin, Building, AlertCircle, Calendar, CreditCard, Wallet, Clock } from "lucide-react";
-import { formatIDR } from "@/lib/utils";
+import { formatIDR, formatDate } from "@/lib/utils";
+import { Contract } from "@/lib/api";
 import Badge from "@/components/ui/Badge";
 
-interface ContractDetail {
-    nid: number;
-    ccontract_no: string;
-    ccust_id?: string;
-    noutstanding: number | string;
-    nloan_amount?: number | string;
-    ntenor?: number;
-    narrears?: number | string;
-    ncard_count?: number;
-    nlundis?: number | string;
-    cva_account?: string;
-    chandler?: string;
-    carea?: string;
-    darea_date?: string;
-    dlast_payment?: string;
-    ddisbursement?: string;
-    customer_name?: string;
-    customer_nik?: string;
-    customer_phone?: string;
-    customer_email?: string;
-    caddress_home?: string;
-    caddress_ktp?: string;
-    coffice_name?: string;
-    coffice_address?: string;
-    cec_name?: string;
-    cec_phone?: string;
-    cec_address?: string;
-}
-
 interface Props {
-    contract: ContractDetail | null;
+    contract: Contract | null;
     isOpen: boolean;
     onClose: () => void;
-}
-
-function formatDate(dateStr?: string): string {
-    if (!dateStr) return "-";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function InfoRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value?: string | number | null }) {
@@ -139,7 +105,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
 
                             {/* Customer Info */}
                             <Section title="Customer Information">
-                                <InfoRow icon={User} label="Name" value={contract.customer_name} />
+                                <InfoRow icon={User} label="Name" value={contract.customer_name || contract.cname} />
                                 <InfoRow icon={CreditCard} label="NIK" value={contract.customer_nik} />
                                 <InfoRow icon={Phone} label="Phone" value={contract.customer_phone} />
                                 <InfoRow icon={Mail} label="Email" value={contract.customer_email} />
@@ -207,3 +173,4 @@ export default function ContractDetailSheet({ contract, isOpen, onClose }: Props
         </AnimatePresence>
     );
 }
+

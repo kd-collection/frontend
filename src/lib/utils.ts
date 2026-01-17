@@ -13,3 +13,9 @@ export function formatIDR(amount: number) {
         maximumFractionDigits: 0,
     }).format(amount);
 }
+
+export function formatDate(dateStr?: string | null): string {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+}
