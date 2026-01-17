@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { formatIDR, cn } from "@/lib/utils";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { api, Contract } from "@/lib/api"; // Keep api for getContractById for now
 import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
@@ -15,18 +16,56 @@ import { useToast } from "@/components/ui/Toast";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export default function ContractsPage() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+
+    // Initialize state from URL Params or defaults
+    const initialPage = Number(searchParams.get("page")) || 1;
+    const initialSearch = searchParams.get("q") || "";
+
     // Pagination State
-    const [page, setPage] = useState(1);
+    const [page, setPage] = useState(initialPage);
     const LIMIT = 10;
 
     // Search State
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchQuery, setSearchQuery] = useState(initialSearch);
     const debouncedSearch = useDebounce(searchQuery, 500); // 500ms delay
 
-    // Reset page when search changes
+    // URL Synchronization Effect
+    const createQueryString = useCallback(
+        (params: Record<string, string | number | null>) => {
+            const newSearchParams = new URLSearchParams(searchParams.toString());
+
+            Object.entries(params).forEach(([key, value]) => {
+                if (value === null || value === "" || value === 1) {
+                    newSearchParams.delete(key);
+                } else {
+                    newSearchParams.set(key, String(value));
+                }
+            });
+
+            return newSearchParams.toString();
+        },
+        [searchParams]
+    );
+
+    // Update URL when page or debouncedSearch changes
     useEffect(() => {
+        const queryString = createQueryString({
+            page: page === 1 ? null : page,
+            q: debouncedSearch === "" ? null : debouncedSearch
+        });
+
+        router.push(pathname + (queryString ? `?${queryString}` : ""), { scroll: false });
+    }, [page, debouncedSearch, createQueryString, pathname, router]);
+
+    // Refined Reset Logic: Sync page reset on search change
+    const [prevSearch, setPrevSearch] = useState(initialSearch);
+    if (debouncedSearch !== prevSearch) {
         setPage(1);
-    }, [debouncedSearch]);
+        setPrevSearch(debouncedSearch);
+    }
 
     // React Query Hooks
     const { data: queryResult, isLoading, refetch, isRefetching } = useContracts(page, LIMIT, debouncedSearch);
