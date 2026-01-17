@@ -31,12 +31,12 @@ export default function Sidebar() {
             <div className="p-8 flex items-center gap-3.5">
                 <div className="relative group">
                     <div className="absolute inset-0 bg-primary/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white group-hover:scale-105 transition-transform duration-300">
+                    <div className="relative h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white group-hover:scale-105 transition-transform duration-300">
                         <ShieldCheck className="h-5 w-5" />
                     </div>
                 </div>
                 <div>
-                    <h1 className="text-lg font-bold tracking-tight text-text-main leading-none">AMAR</h1>
+                    <h1 className="text-lg font-bold tracking-tight text-text-main leading-none">CollectPro</h1>
                     <p className="text-[10px] uppercase tracking-[0.2em] text-primary font-bold mt-1 ml-0.5">Collection</p>
                 </div>
             </div>

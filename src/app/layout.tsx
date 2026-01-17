@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Amar Collection | Prime CRM",
-  description: "Advanced Collection Management System",
+  title: "CollectPro | Collection Management",
+  description: "Professional Collection & Debt Recovery Management System",
 };
 
 export default function RootLayout({
