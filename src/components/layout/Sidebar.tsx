@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LayoutDashboard, Users, FileText, BarChart3, Settings, ShieldCheck, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Users, FileText, BarChart3, Settings, ShieldCheck, ChevronRight, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
     { icon: FileText, label: "Contracts", href: "/contracts" },
     { icon: Users, label: "Customers", href: "/customers" },
+    { icon: Upload, label: "Import", href: "/import" },
     { icon: BarChart3, label: "Analytics", href: "/analytics" },
     { icon: Settings, label: "Settings", href: "/settings" },
 ];
