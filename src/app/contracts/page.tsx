@@ -1,28 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { formatIDR, cn } from "@/lib/utils";
-import { api, Contract } from "@/lib/api";
+import { api, Contract } from "@/lib/api"; // Keep api for getContractById for now
 import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ContractDetailSheet from "@/components/ui/ContractDetailSheet";
 import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContractSettings } from "@/hooks/useContractSettings";
+import { useContracts } from "@/hooks/useContracts";
 import { CONTRACT_COLUMNS } from "@/lib/constants";
 
-// Column Configuration removed in favor of shared constant
-
-// Fallback Mock Data
-const MOCK_CONTRACTS: Contract[] = [
-    { nid: 1, ccontract_no: "CTR-2026-001", cname: "Budi Santoso", noutstanding: 5000000, narrears: 500000, darea_date: "2026-01-15", chandler: "Agent X" },
-    { nid: 2, ccontract_no: "CTR-2026-002", cname: "Amanda Manopo", noutstanding: 12500000, narrears: 0, darea_date: "2026-01-20", chandler: "Agent Y" },
-    { nid: 3, ccontract_no: "CTR-2026-003", cname: "Raffi Ahmad", noutstanding: 75000000, narrears: 12000000, darea_date: "2026-01-10", chandler: "Agent Z" },
-];
-
 export default function ContractsPage() {
-    const [contracts, setContracts] = useState<Contract[]>([]);
-    const [loading, setLoading] = useState(true);
+    // React Query Hook
+    const { data: contracts = [], isLoading, refetch, isRefetching } = useContracts();
+
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [detailContract, setDetailContract] = useState<Contract | null>(null);
@@ -43,24 +36,6 @@ export default function ContractsPage() {
         setIsDetailOpen(false);
         setDetailContract(null);
     };
-
-    const fetchContracts = async () => {
-        setLoading(true);
-        const response = await api.getContracts();
-
-        if (response.success && response.data) {
-            setContracts(response.data);
-        } else {
-            // Fallback to mock data if API fails
-            console.warn('API unavailable, using mock data');
-            setContracts(MOCK_CONTRACTS);
-        }
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        fetchContracts();
-    }, []);
 
     const toggleSelectAll = () => {
         if (selectedIds.length === contracts.length) {
@@ -134,8 +109,12 @@ export default function ContractsPage() {
                             <span className="flex items-center justify-center bg-primary-subtle text-primary text-[10px] h-5 w-5 rounded font-bold">2</span>
                         </button>
                         <button
-                            onClick={() => fetchContracts()}
-                            className="p-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main hover:bg-bg-card-hover hover:rotate-180 transition-all duration-500 shadow-sm"
+                            onClick={() => refetch()}
+                            disabled={isRefetching}
+                            className={cn(
+                                "p-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main hover:bg-bg-card-hover transition-all duration-500 shadow-sm",
+                                isRefetching && "animate-spin cursor-not-allowed opacity-50"
+                            )}
                         >
                             <RefreshCcw className="h-4 w-4" />
                         </button>
@@ -211,7 +190,7 @@ export default function ContractsPage() {
                     </div>
 
                     {/* Table Body */}
-                    {(loading || !mounted) ? (
+                    {(isLoading || !mounted) ? (
                         <div className="h-96 flex flex-col items-center justify-center gap-4">
                             <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
                             <p className="text-sm font-medium text-text-muted animate-pulse">Syncing Database...</p>
