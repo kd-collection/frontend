@@ -279,7 +279,11 @@ export default function ContractsPage() {
 
                                             {visibleColumns.includes('status') && (
                                                 <div className="flex justify-center">
-                                                    <Badge variant={Number(contract.narrears) > 0 ? "danger" : "success"} glow={Number(contract.narrears) > 0}>
+                                                    <Badge
+                                                        variant={Number(contract.narrears) > 0 ? "danger" : "success"}
+                                                        glow={Number(contract.narrears) > 0}
+                                                        className="min-w-[90px] justify-center"
+                                                    >
                                                         {Number(contract.narrears) > 0 ? "Overdue" : "On Track"}
                                                     </Badge>
                                                 </div>

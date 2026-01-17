@@ -209,7 +209,7 @@ export default function SettingsPage() {
 
                                 {visibleColumns.includes('status') && (
                                     <div className="flex justify-center">
-                                        <Badge variant="success">On Track</Badge>
+                                        <Badge variant="success" className="min-w-[90px] justify-center">On Track</Badge>
                                     </div>
                                 )}
 
