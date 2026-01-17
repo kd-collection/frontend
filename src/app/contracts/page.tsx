@@ -7,7 +7,7 @@ import { api, Contract } from "@/lib/api"; // Keep api for getContractById for n
 import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ContractDetailSheet from "@/components/ui/ContractDetailSheet";
-import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown, Trash2, Loader2 } from "lucide-react";
+import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown, ChevronUp, Trash2, Loader2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContractSettings } from "@/hooks/useContractSettings";
 import { useContracts, useDeleteContract } from "@/hooks/useContracts";
@@ -32,6 +32,11 @@ export default function ContractsPage() {
     const [searchQuery, setSearchQuery] = useState(initialSearch);
     const debouncedSearch = useDebounce(searchQuery, 500); // 500ms delay
 
+    // Level 1: Sort & Filter State
+    const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "created_at");
+    const [sortOrder, setSortOrder] = useState(searchParams.get("sortOrder") || "DESC");
+    const [filterHandler, setFilterHandler] = useState(searchParams.get("handler") || "");
+
     // URL Synchronization Effect
     const createQueryString = useCallback(
         (params: Record<string, string | number | null>) => {
@@ -54,11 +59,24 @@ export default function ContractsPage() {
     useEffect(() => {
         const queryString = createQueryString({
             page: page === 1 ? null : page,
-            q: debouncedSearch === "" ? null : debouncedSearch
+            q: debouncedSearch === "" ? null : debouncedSearch,
+            sortBy: sortBy === "created_at" ? null : sortBy,
+            sortOrder: sortOrder === "DESC" ? null : sortOrder,
+            handler: filterHandler === "" ? null : filterHandler
         });
 
         router.push(pathname + (queryString ? `?${queryString}` : ""), { scroll: false });
-    }, [page, debouncedSearch, createQueryString, pathname, router]);
+    }, [page, debouncedSearch, sortBy, sortOrder, filterHandler, createQueryString, pathname, router]);
+
+    // Handlers
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(prev => prev === "ASC" ? "DESC" : "ASC");
+        } else {
+            setSortBy(column);
+            setSortOrder("DESC"); // Default new sort to DESC
+        }
+    };
 
     // Refined Reset Logic: Sync page reset on search change
     const [prevSearch, setPrevSearch] = useState(initialSearch);
@@ -67,8 +85,15 @@ export default function ContractsPage() {
         setPrevSearch(debouncedSearch);
     }
 
-    // React Query Hooks
-    const { data: queryResult, isLoading, refetch, isRefetching } = useContracts(page, LIMIT, debouncedSearch);
+    // React Query Hooks (Updated with Object Params)
+    const { data: queryResult, isLoading, refetch, isRefetching } = useContracts({
+        page,
+        limit: LIMIT,
+        search: debouncedSearch,
+        sortBy,
+        sortOrder,
+        handler: filterHandler
+    });
     const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
 
     const contracts = queryResult?.data || [];
@@ -207,12 +232,23 @@ export default function ContractsPage() {
                             )}
                         </AnimatePresence>
 
-                        <button className="px-4 py-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main text-sm font-medium flex items-center gap-2 hover:bg-bg-card-hover shadow-sm transition-all">
-                            <Filter className="h-4 w-4" />
-                            <span className="hidden sm:inline">Filters</span>
-                            {/* Filter Badge */}
-                            <span className="flex items-center justify-center bg-primary-subtle text-primary text-[10px] h-5 w-5 rounded font-bold">2</span>
-                        </button>
+                        {/* Handler Filter Mockup */}
+                        <div className="relative">
+                            <select
+                                value={filterHandler}
+                                onChange={(e) => {
+                                    setFilterHandler(e.target.value);
+                                    setPage(1); // Reset page on filter
+                                }}
+                                className="appearance-none px-4 py-2 pl-9 rounded-lg bg-card border border-border-subtle text-sm font-medium text-text-main hover:bg-bg-card-hover shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+                            >
+                                <option value="">All Handlers</option>
+                                <option value="Agent X">Agent X</option>
+                                <option value="Agent Y">Agent Y</option>
+                                <option value="Agent Z">Agent Z</option>
+                            </select>
+                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted pointer-events-none" />
+                        </div>
                         <button
                             onClick={() => refetch()}
                             disabled={isRefetching}
@@ -246,8 +282,16 @@ export default function ContractsPage() {
                         </div>
 
                         {visibleColumns.includes('contract_no') && (
-                            <div className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors">
-                                Contract No <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div
+                                className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                onClick={() => handleSort('contract_no')}
+                            >
+                                Contract No
+                                {sortBy === 'contract_no' ? (
+                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                ) : (
+                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
                             </div>
                         )}
 
@@ -256,7 +300,17 @@ export default function ContractsPage() {
                         )}
 
                         {visibleColumns.includes('balance') && (
-                            <div className="text-right">Balance</div>
+                            <div
+                                className="flex items-center justify-end gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                onClick={() => handleSort('outstanding')}
+                            >
+                                Balance
+                                {sortBy === 'outstanding' ? (
+                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                ) : (
+                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                            </div>
                         )}
 
                         {visibleColumns.includes('handler') && (
@@ -268,7 +322,17 @@ export default function ContractsPage() {
                         )}
 
                         {visibleColumns.includes('loan_amount') && (
-                            <div className="text-right">Loan Amount</div>
+                            <div
+                                className="flex items-center justify-end gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                onClick={() => handleSort('loan_amount')}
+                            >
+                                Loan Amount
+                                {sortBy === 'loan_amount' ? (
+                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                ) : (
+                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                            </div>
                         )}
 
                         {visibleColumns.includes('tenor') && (
@@ -284,7 +348,17 @@ export default function ContractsPage() {
                         )}
 
                         {visibleColumns.includes('due_date') && (
-                            <div>Due Date</div>
+                            <div
+                                className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                onClick={() => handleSort('due_date')}
+                            >
+                                Due Date
+                                {sortBy === 'due_date' ? (
+                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                ) : (
+                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                            </div>
                         )}
 
                         {visibleColumns.includes('disbursement_date') && (

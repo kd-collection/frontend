@@ -8,12 +8,23 @@ let MOCK_CONTRACTS: Contract[] = [
     { nid: 3, ccontract_no: "CTR-2026-003", cname: "Raffi Ahmad", noutstanding: 75000000, narrears: 12000000, darea_date: "2026-01-10", chandler: "Agent Z" },
 ];
 
-export function useContracts(page: number = 1, limit: number = 10, search: string = "") {
+export interface UseContractsParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: string;
+    handler?: string;
+}
+
+export function useContracts(params: UseContractsParams = {}) {
+    const { page = 1, limit = 10, search = "", sortBy = "created_at", sortOrder = "DESC", handler = "" } = params;
+
     return useQuery({
-        queryKey: ["contracts", page, limit, search],
+        queryKey: ["contracts", page, limit, search, sortBy, sortOrder, handler],
         queryFn: async () => {
             try {
-                const response = await api.getContracts({ page, limit, search });
+                const response = await api.getContracts({ page, limit, search, sortBy, sortOrder, handler });
 
                 // Response contains { data: Contract[], pagination: ... }
                 if (response && response.data) {
@@ -26,12 +37,28 @@ export function useContracts(page: number = 1, limit: number = 10, search: strin
                     console.warn("API Error, falling back to mock data (DEMO MODE ACTIVE)", error);
 
                     // Client-side search simulation for mock data
-                    const filtered = search
-                        ? MOCK_CONTRACTS.filter(c =>
+                    let filtered = MOCK_CONTRACTS;
+
+                    if (search) {
+                        filtered = filtered.filter(c =>
                             (c.cname || "").toLowerCase().includes(search.toLowerCase()) ||
                             (c.ccontract_no || "").toLowerCase().includes(search.toLowerCase())
-                        )
-                        : MOCK_CONTRACTS;
+                        );
+                    }
+
+                    if (handler) {
+                        filtered = filtered.filter(c => (c.chandler || "") === handler);
+                    }
+
+                    // Mock Sorting
+                    filtered.sort((a: any, b: any) => {
+                        const valA = a[sortBy === 'contract_no' ? 'ccontract_no' : sortBy === 'loan_amount' ? 'nloan_amount' : 'dcreated_at'] || 0;
+                        const valB = b[sortBy === 'contract_no' ? 'ccontract_no' : sortBy === 'loan_amount' ? 'nloan_amount' : 'dcreated_at'] || 0;
+
+                        if (valA < valB) return sortOrder === 'ASC' ? -1 : 1;
+                        if (valA > valB) return sortOrder === 'ASC' ? 1 : -1;
+                        return 0;
+                    });
 
                     return {
                         data: filtered.slice((page - 1) * limit, page * limit),

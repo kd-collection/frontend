@@ -56,11 +56,14 @@ class ApiClient {
     }
 
     // Contracts
-    async getContracts(params: { page?: number; limit?: number; search?: string } = {}) {
+    async getContracts(params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string; handler?: string } = {}) {
         const query = new URLSearchParams();
         if (params.page) query.append('page', params.page.toString());
         if (params.limit) query.append('limit', params.limit.toString());
         if (params.search) query.append('search', params.search);
+        if (params.sortBy) query.append('sortBy', params.sortBy);
+        if (params.sortOrder) query.append('sortOrder', params.sortOrder);
+        if (params.handler) query.append('handler', params.handler);
 
         const response = await this.request<Contract[]>(`/contracts?${query.toString()}`);
 
