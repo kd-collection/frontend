@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ContractDetailSheet from "@/components/ui/ContractDetailSheet";
 import ContractFormModal from "@/components/ui/ContractFormModal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown, ChevronUp, Trash2, Loader2, X, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContractSettings } from "@/hooks/useContractSettings";
@@ -139,6 +140,10 @@ export default function ContractsPage() {
         setEditingContract(null);
     };
 
+    // Delete Confirmation Modal State
+    const [deleteTarget, setDeleteTarget] = useState<{ type: 'single' | 'batch'; ids: number[] } | null>(null);
+    const isDeleteModalOpen = deleteTarget !== null;
+
     // Settings Hook
     const { visibleColumns, mounted } = useContractSettings();
 
@@ -167,12 +172,21 @@ export default function ContractsPage() {
     };
 
     const handleDeleteSelected = async () => {
-        if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} contract(s)? This action cannot be undone.`)) {
-            return;
-        }
+        // Open confirmation modal instead of window.confirm
+        setDeleteTarget({ type: 'batch', ids: selectedIds });
+    };
+
+    const handleSingleDelete = (id: number) => {
+        setDeleteTarget({ type: 'single', ids: [id] });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteTarget) return;
+
+        const idsToDelete = deleteTarget.ids;
 
         // Parallel deletions
-        const promises = selectedIds.map(id =>
+        const promises = idsToDelete.map(id =>
             new Promise<void>((resolve, reject) => {
                 deleteContract(id, {
                     onSuccess: () => resolve(),
@@ -183,11 +197,13 @@ export default function ContractsPage() {
 
         try {
             await Promise.all(promises);
-            toast(`Successfully deleted ${selectedIds.length} contract(s)`, "success");
-            setSelectedIds([]); // Clear selection
-            refetch(); // Ensure list is refreshed
+            toast(`Successfully deleted ${idsToDelete.length} contract(s)`, "success");
+            setSelectedIds(prev => prev.filter(id => !idsToDelete.includes(id)));
+            refetch();
         } catch (error) {
             toast("Failed to delete some contracts", "error");
+        } finally {
+            setDeleteTarget(null);
         }
     };
 
@@ -509,7 +525,7 @@ export default function ContractsPage() {
                                             </div>
                                         )}
 
-                                        <div className="flex justify-center">
+                                        <div className="flex justify-center gap-1">
                                             <button
                                                 className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-primary transition-colors"
                                                 onClick={(e) => {
@@ -519,6 +535,16 @@ export default function ContractsPage() {
                                                 title="Edit Contract"
                                             >
                                                 <Pencil className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                className="p-1.5 rounded-md hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSingleDelete(contract.nid);
+                                                }}
+                                                title="Delete Contract"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
 
@@ -615,6 +641,22 @@ export default function ContractsPage() {
                 isOpen={isFormOpen}
                 onClose={closeFormModal}
                 contract={editingContract}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={isDeleteModalOpen}
+                onClose={() => setDeleteTarget(null)}
+                onConfirm={confirmDelete}
+                title={deleteTarget?.type === 'batch'
+                    ? `Delete ${deleteTarget.ids.length} Contract(s)?`
+                    : 'Delete Contract?'}
+                message={deleteTarget?.type === 'batch'
+                    ? `You are about to delete ${deleteTarget.ids.length} contract(s). This action cannot be undone.`
+                    : 'Are you sure you want to delete this contract? This action cannot be undone.'}
+                confirmText="Delete"
+                variant="danger"
+                isLoading={isDeleting}
             />
         </>
     );
