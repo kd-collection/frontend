@@ -95,6 +95,20 @@ class ApiClient {
         });
     }
 
+    async createContract(data: Partial<Contract>) {
+        return this.request<Contract>('/contracts', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateContract(id: number, data: Partial<Contract>) {
+        return this.request<Contract>(`/contracts/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
     // Customers
     async getCustomers() {
         return this.request<Customer[]>('/customers');

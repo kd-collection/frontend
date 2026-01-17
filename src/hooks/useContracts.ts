@@ -105,3 +105,60 @@ export function useDeleteContract() {
         }
     });
 }
+
+export function useCreateContract() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: Partial<Contract>) => {
+            if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+                await new Promise(resolve => setTimeout(resolve, 800));
+                const newContract: Contract = {
+                    nid: Date.now(),
+                    ccontract_no: data.ccontract_no || `CTR-${Date.now()}`,
+                    noutstanding: data.noutstanding || 0,
+                    narrears: data.narrears || 0,
+                    ...data
+                } as Contract;
+                MOCK_CONTRACTS.push(newContract);
+                return { success: true, data: newContract };
+            }
+
+            const response = await api.createContract(data);
+            if (!response.success) {
+                throw new Error(response.message || "Failed to create contract");
+            }
+            return response;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["contracts"] });
+        }
+    });
+}
+
+export function useUpdateContract() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ id, data }: { id: number; data: Partial<Contract> }) => {
+            if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+                await new Promise(resolve => setTimeout(resolve, 800));
+                const index = MOCK_CONTRACTS.findIndex(c => c.nid === id);
+                if (index !== -1) {
+                    MOCK_CONTRACTS[index] = { ...MOCK_CONTRACTS[index], ...data };
+                }
+                return { success: true, data: MOCK_CONTRACTS[index] };
+            }
+
+            const response = await api.updateContract(id, data);
+            if (!response.success) {
+                throw new Error(response.message || "Failed to update contract");
+            }
+            return response;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["contracts"] });
+        }
+    });
+}
+

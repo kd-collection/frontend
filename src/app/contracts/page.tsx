@@ -7,7 +7,8 @@ import { api, Contract } from "@/lib/api"; // Keep api for getContractById for n
 import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ContractDetailSheet from "@/components/ui/ContractDetailSheet";
-import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown, ChevronUp, Trash2, Loader2, X } from "lucide-react";
+import ContractFormModal from "@/components/ui/ContractFormModal";
+import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown, ChevronUp, Trash2, Loader2, X, Pencil } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContractSettings } from "@/hooks/useContractSettings";
 import { useContracts, useDeleteContract } from "@/hooks/useContracts";
@@ -119,6 +120,25 @@ export default function ContractsPage() {
     const [detailContract, setDetailContract] = useState<Contract | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+    // Form Modal State
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingContract, setEditingContract] = useState<Contract | null>(null);
+
+    const openCreateModal = () => {
+        setEditingContract(null);
+        setIsFormOpen(true);
+    };
+
+    const openEditModal = (contract: Contract) => {
+        setEditingContract(contract);
+        setIsFormOpen(true);
+    };
+
+    const closeFormModal = () => {
+        setIsFormOpen(false);
+        setEditingContract(null);
+    };
+
     // Settings Hook
     const { visibleColumns, mounted } = useContractSettings();
 
@@ -203,7 +223,10 @@ export default function ContractsPage() {
                                 <Download className="h-4 w-4" />
                                 <span className="hidden sm:inline">Export</span>
                             </button>
-                            <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
+                            <button
+                                onClick={openCreateModal}
+                                className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2"
+                            >
                                 <Plus className="h-4 w-4" />
                                 New Contract
                             </button>
@@ -488,10 +511,14 @@ export default function ContractsPage() {
 
                                         <div className="flex justify-center">
                                             <button
-                                                className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-text-main transition-colors"
-                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-primary transition-colors"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openEditModal(contract);
+                                                }}
+                                                title="Edit Contract"
                                             >
-                                                <MoreHorizontal className="h-4 w-4" />
+                                                <Pencil className="h-4 w-4" />
                                             </button>
                                         </div>
 
@@ -532,7 +559,10 @@ export default function ContractsPage() {
                                             <p className="text-sm text-text-muted mt-1 max-w-sm mx-auto">
                                                 Your database is empty. Contracts will appear here once they are created or synchronized.
                                             </p>
-                                            <button className="mt-6 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
+                                            <button
+                                                onClick={openCreateModal}
+                                                className="mt-6 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2"
+                                            >
                                                 <Plus className="h-4 w-4" />
                                                 Create First Contract
                                             </button>
@@ -578,6 +608,13 @@ export default function ContractsPage() {
                 contract={detailContract}
                 isOpen={isDetailOpen}
                 onClose={closeContractDetail}
+            />
+
+            {/* Contract Form Modal */}
+            <ContractFormModal
+                isOpen={isFormOpen}
+                onClose={closeFormModal}
+                contract={editingContract}
             />
         </>
     );
