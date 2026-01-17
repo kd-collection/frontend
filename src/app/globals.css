@@ -31,15 +31,15 @@
 */
 
 :root {
-  /* --- LIGHT MODE: "Professional Precision" --- */
+  /* --- LIGHT MODE: "Clean Blue" --- */
 
   /* Surfaces */
-  --bg-app: #f1f5f9;
-  /* Slate 100 - Distinct from card white */
-  --bg-card: #ffffff;
+  --bg-app: #ffffff;
   /* Pure White */
-  --bg-card-hover: #f8fafc;
-  /* Slate 50 */
+  --bg-card: #f8fafc;
+  /* Slate 50 - Very subtle contrast */
+  --bg-card-hover: #f1f5f9;
+  /* Slate 100 */
 
   /* Borders */
   --border-subtle: #e2e8f0;
@@ -47,18 +47,18 @@
   --border-strong: #cbd5e1;
   /* Slate 300 */
 
-  /* Brand: Indigo (Trust/Enterprise) */
-  --primary: #4f46e5;
-  /* Indigo 600 - High contrast */
+  /* Brand: Blue (Clean/Professional) */
+  --primary: #2563eb;
+  /* Blue 600 */
   --primary-foreground: #ffffff;
-  --primary-subtle: #eef2ff;
-  /* Indigo 50 - Active states */
+  --primary-subtle: #eff6ff;
+  /* Blue 50 */
 
   /* Functional */
-  --secondary: #10b981;
-  /* Emerald 500 */
-  --accent: #f59e0b;
-  /* Amber 500 */
+  --secondary: #3b82f6;
+  /* Blue 500 - Making secondary blue as well per "list2 biru aja" request */
+  --accent: #60a5fa;
+  /* Blue 400 */
   --destructive: #ef4444;
   /* Red 500 */
 
@@ -70,21 +70,21 @@
   --text-dim: #94a3b8;
   /* Slate 400 */
 
-  /* Glass - Subtle, not blurry */
+  /* Glass - Subtle */
   --glass-bg: rgba(255, 255, 255, 0.9);
   --glass-border: rgba(226, 232, 240, 0.8);
 }
 
 .dark {
-  /* --- DARK MODE: "Obsidian Console" --- */
+  /* --- DARK MODE: "Deep Blue" --- */
 
   /* Surfaces */
-  --bg-app: #020617;
-  /* Slate 950 - Almost True Black */
-  --bg-card: #0f172a;
-  /* Slate 900 - Rich contrast */
-  --bg-card-hover: #1e293b;
+  --bg-app: #0f172a;
+  /* Slate 900 */
+  --bg-card: #1e293b;
   /* Slate 800 */
+  --bg-card-hover: #334155;
+  /* Slate 700 */
 
   /* Borders */
   --border-subtle: #1e293b;
@@ -92,18 +92,18 @@
   --border-strong: #334155;
   /* Slate 700 */
 
-  /* Brand: Luminous Indigo */
-  --primary: #6366f1;
-  /* Indigo 500 - Brighter */
+  /* Brand: Luminous Blue */
+  --primary: #3b82f6;
+  /* Blue 500 */
   --primary-foreground: #ffffff;
-  --primary-subtle: rgba(99, 102, 241, 0.15);
-  /* Transparent Indigo */
+  --primary-subtle: rgba(59, 130, 246, 0.15);
+  /* Transparent Blue */
 
   /* Functional */
-  --secondary: #34d399;
-  /* Emerald 400 */
-  --accent: #fbbf24;
-  /* Amber 400 */
+  --secondary: #60a5fa;
+  /* Blue 400 */
+  --accent: #93c5fd;
+  /* Blue 300 */
   --destructive: #f87171;
   /* Red 400 */
 
@@ -115,10 +115,9 @@
   --text-dim: #475569;
   /* Slate 600 */
 
-  /* Glass - Deep & Glossy */
+  /* Glass - Deep usage */
   --glass-bg: rgba(15, 23, 42, 0.8);
   --glass-border: rgba(255, 255, 255, 0.08);
-  /* Careful white accent */
 }
 
 /* Core Foundation */

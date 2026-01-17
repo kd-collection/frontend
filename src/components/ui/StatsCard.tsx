@@ -18,8 +18,8 @@ export default function StatsCard({ label, value, trend, trendUp, icon: Icon, co
     // Semantic mapping
     const colorStyles = {
         primary: "text-primary bg-primary-subtle border-primary-subtle",
-        secondary: "text-secondary bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30",
-        accent: "text-accent bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800/30",
+        secondary: "text-secondary bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30",
+        accent: "text-accent bg-sky-50 dark:bg-sky-900/10 border-sky-100 dark:border-sky-800/30",
         destructive: "text-destructive bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-800/30",
     }[color];
 
@@ -48,7 +48,7 @@ export default function StatsCard({ label, value, trend, trendUp, icon: Icon, co
                         <span className={cn(
                             "flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border",
                             trendUp
-                                ? "bg-emerald-50 dark:bg-emerald-900/20 text-secondary border-emerald-100 dark:border-emerald-800/30"
+                                ? "bg-blue-50 dark:bg-blue-900/20 text-secondary border-blue-100 dark:border-blue-800/30"
                                 : "bg-rose-50 dark:bg-rose-900/20 text-destructive border-rose-100 dark:border-rose-800/30"
                         )}>
                             {trendUp ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
