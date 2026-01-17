@@ -257,130 +257,124 @@ export default function ContractsPage() {
                         </div>
                     ) : (
                         <div className="divide-y divide-border-subtle bg-card">
-                            <AnimatePresence>
-                                {filteredContracts.map((contract, i) => {
-                                    const isSelected = selectedIds.includes(contract.nid);
-                                    return (
-                                        <motion.div
-                                            key={contract.nid}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95 }}
-                                            transition={{ delay: i * 0.03, duration: 0.2 }}
-                                            onClick={() => openContractDetail(contract.nid)}
-                                            style={{ gridTemplateColumns }}
-                                            className={cn(
-                                                "grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative cursor-pointer",
-                                                isSelected ? "bg-primary-subtle" : "hover:bg-bg-card-hover"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-2 z-10">
-                                                <button onClick={(e) => { e.stopPropagation(); toggleSelect(contract.nid); }}>
-                                                    {isSelected ? (
-                                                        <CheckSquare className="h-4 w-4 text-primary" />
-                                                    ) : (
-                                                        <Square className="h-4 w-4 text-text-muted group-hover:text-text-main transition-colors" />
-                                                    )}
-                                                </button>
-                                                <span className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</span>
+                            {filteredContracts.map((contract, i) => {
+                                const isSelected = selectedIds.includes(contract.nid);
+                                return (
+                                    <div
+                                        key={contract.nid}
+                                        onClick={() => openContractDetail(contract.nid)}
+                                        style={{ gridTemplateColumns }}
+                                        className={cn(
+                                            "grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative cursor-pointer",
+                                            isSelected ? "bg-primary-subtle" : "hover:bg-bg-card-hover"
+                                        )}
+                                    >
+                                        <div className="flex items-center gap-2 z-10">
+                                            <button onClick={(e) => { e.stopPropagation(); toggleSelect(contract.nid); }}>
+                                                {isSelected ? (
+                                                    <CheckSquare className="h-4 w-4 text-primary" />
+                                                ) : (
+                                                    <Square className="h-4 w-4 text-text-muted group-hover:text-text-main transition-colors" />
+                                                )}
+                                            </button>
+                                            <span className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</span>
+                                        </div>
+
+                                        {visibleColumns.includes('contract_no') && (
+                                            <div className="font-mono text-xs text-text-muted group-hover:text-primary transition-colors font-medium">
+                                                {contract.ccontract_no}
                                             </div>
+                                        )}
 
-                                            {visibleColumns.includes('contract_no') && (
-                                                <div className="font-mono text-xs text-text-muted group-hover:text-primary transition-colors font-medium">
-                                                    {contract.ccontract_no}
+                                        {visibleColumns.includes('customer_info') && (
+                                            <div>
+                                                <p className="font-semibold text-text-main text-sm">{contract.customer_name || contract.cname || "Unknown Customer"}</p>
+                                                <p className="text-[11px] text-text-muted mt-0.5">Due: {contract.darea_date ? new Date(contract.darea_date).toLocaleDateString() : 'N/A'}</p>
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('balance') && (
+                                            <div className="text-right">
+                                                <p className="text-sm font-medium text-text-main">{formatIDR(Number(contract.noutstanding))}</p>
+                                                {Number(contract.narrears) > 0 && (
+                                                    <p className="text-[10px] text-destructive font-medium">+{formatIDR(Number(contract.narrears))} Arrears</p>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('handler') && (
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-6 w-6 rounded-full bg-blue-50 dark:bg-blue-900/40 text-[10px] font-bold text-primary flex items-center justify-center uppercase border border-primary-subtle">
+                                                    {(contract.chandler || "A").charAt(0)}
                                                 </div>
-                                            )}
+                                                <span className="text-xs text-text-muted">{contract.chandler || "Unassigned"}</span>
+                                            </div>
+                                        )}
 
-                                            {visibleColumns.includes('customer_info') && (
-                                                <div>
-                                                    <p className="font-semibold text-text-main text-sm">{contract.customer_name || contract.cname || "Unknown Customer"}</p>
-                                                    <p className="text-[11px] text-text-muted mt-0.5">Due: {contract.darea_date ? new Date(contract.darea_date).toLocaleDateString() : 'N/A'}</p>
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('balance') && (
-                                                <div className="text-right">
-                                                    <p className="text-sm font-medium text-text-main">{formatIDR(Number(contract.noutstanding))}</p>
-                                                    {Number(contract.narrears) > 0 && (
-                                                        <p className="text-[10px] text-destructive font-medium">+{formatIDR(Number(contract.narrears))} Arrears</p>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('handler') && (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-6 w-6 rounded-full bg-blue-50 dark:bg-blue-900/40 text-[10px] font-bold text-primary flex items-center justify-center uppercase border border-primary-subtle">
-                                                        {(contract.chandler || "A").charAt(0)}
-                                                    </div>
-                                                    <span className="text-xs text-text-muted">{contract.chandler || "Unassigned"}</span>
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('status') && (
-                                                <div className="flex justify-center">
-                                                    <Badge
-                                                        variant={Number(contract.narrears) > 0 ? "danger" : "success"}
-                                                        glow={Number(contract.narrears) > 0}
-                                                        className="min-w-[90px] justify-center"
-                                                    >
-                                                        {Number(contract.narrears) > 0 ? "Overdue" : "On Track"}
-                                                    </Badge>
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('loan_amount') && (
-                                                <div className="text-right text-xs font-mono text-text-main">
-                                                    {formatIDR(Number(contract.nloan_amount || 0))}
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('tenor') && (
-                                                <div className="text-center text-xs text-text-muted">
-                                                    {contract.ntenor || '-'}
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('va_account') && (
-                                                <div className="font-mono text-xs text-text-muted">
-                                                    {contract.cva_account || '-'}
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('area') && (
-                                                <div className="text-xs text-text-muted truncate">
-                                                    {contract.carea || contract.caddress_ktp || '-'}
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('due_date') && (
-                                                <div className="text-xs text-text-muted">
-                                                    {contract.darea_date ? new Date(contract.darea_date).getDate() : '-'}
-                                                </div>
-                                            )}
-
-                                            {visibleColumns.includes('disbursement_date') && (
-                                                <div className="text-xs text-text-muted">
-                                                    {contract.ddisbursement || '-'}
-                                                </div>
-                                            )}
-
+                                        {visibleColumns.includes('status') && (
                                             <div className="flex justify-center">
-                                                <button
-                                                    className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-text-main transition-colors"
-                                                    onClick={(e) => e.stopPropagation()}
+                                                <Badge
+                                                    variant={Number(contract.narrears) > 0 ? "danger" : "success"}
+                                                    glow={Number(contract.narrears) > 0}
+                                                    className="min-w-[90px] justify-center"
                                                 >
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </button>
+                                                    {Number(contract.narrears) > 0 ? "Overdue" : "On Track"}
+                                                </Badge>
                                             </div>
+                                        )}
 
-                                            {/* Selection Border Indicator */}
-                                            {isSelected && (
-                                                <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
-                                            )}
-                                        </motion.div>
-                                    );
-                                })}
-                            </AnimatePresence>
+                                        {visibleColumns.includes('loan_amount') && (
+                                            <div className="text-right text-xs font-mono text-text-main">
+                                                {formatIDR(Number(contract.nloan_amount || 0))}
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('tenor') && (
+                                            <div className="text-center text-xs text-text-muted">
+                                                {contract.ntenor || '-'}
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('va_account') && (
+                                            <div className="font-mono text-xs text-text-muted">
+                                                {contract.cva_account || '-'}
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('area') && (
+                                            <div className="text-xs text-text-muted truncate">
+                                                {contract.carea || contract.caddress_ktp || '-'}
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('due_date') && (
+                                            <div className="text-xs text-text-muted">
+                                                {contract.darea_date ? new Date(contract.darea_date).getDate() : '-'}
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('disbursement_date') && (
+                                            <div className="text-xs text-text-muted">
+                                                {contract.ddisbursement || '-'}
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-center">
+                                            <button
+                                                className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-text-main transition-colors"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </button>
+                                        </div>
+
+                                        {/* Selection Border Indicator */}
+                                        {isSelected && (
+                                            <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
+                                        )}
+                                    </div>
+                                );
+                            })}
 
                             {filteredContracts.length === 0 && (
                                 <div className="p-16 flex flex-col items-center justify-center text-center">
