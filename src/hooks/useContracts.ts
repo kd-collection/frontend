@@ -15,17 +15,18 @@ export interface UseContractsParams {
     sortBy?: string;
     sortOrder?: string;
     handler?: string;
+    status?: string;
 }
 
 export function useContracts(params: UseContractsParams = {}) {
-    const { page = 1, limit = 10, search = "", sortBy = "created_at", sortOrder = "DESC", handler = "" } = params;
+    const { page = 1, limit = 10, search = "", sortBy = "created_at", sortOrder = "DESC", handler = "", status = "" } = params;
 
     return useQuery({
-        queryKey: ["contracts", page, limit, search, sortBy, sortOrder, handler],
+        queryKey: ["contracts", page, limit, search, sortBy, sortOrder, handler, status],
         queryFn: async () => {
-            console.log('[DEBUG useContracts] queryFn started', { page, limit, search, sortBy, sortOrder, handler });
+            console.log('[DEBUG useContracts] queryFn started', { page, limit, search, sortBy, sortOrder, handler, status });
             try {
-                const response = await api.getContracts({ page, limit, search, sortBy, sortOrder, handler });
+                const response = await api.getContracts({ page, limit, search, sortBy, sortOrder, handler, status });
                 console.log('[DEBUG useContracts] API response received', response);
 
                 // Response contains { data: Contract[], pagination: ... }

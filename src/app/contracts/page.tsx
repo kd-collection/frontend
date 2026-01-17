@@ -38,6 +38,7 @@ export default function ContractsPage() {
     const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "created_at");
     const [sortOrder, setSortOrder] = useState(searchParams.get("sortOrder") || "DESC");
     const [filterHandler, setFilterHandler] = useState(searchParams.get("handler") || "");
+    const [filterStatus, setFilterStatus] = useState(searchParams.get("status") || "");
 
     // URL Synchronization Effect
     const createQueryString = useCallback(
@@ -99,7 +100,8 @@ export default function ContractsPage() {
         search: debouncedSearch,
         sortBy,
         sortOrder,
-        handler: filterHandler
+        handler: filterHandler,
+        status: filterStatus
     });
     const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
 
@@ -248,6 +250,33 @@ export default function ContractsPage() {
                             </button>
                         </div>
                     </div>
+                </div>
+
+                {/* Quick Filter Chips */}
+                <div className="flex items-center gap-1.5 p-1 bg-bg-app/50 rounded-xl border border-border-subtle w-fit">
+                    {[
+                        { value: '', label: 'All' },
+                        { value: 'overdue', label: 'Overdue' },
+                        { value: 'due_this_week', label: 'This Week' },
+                        { value: 'due_this_month', label: 'This Month' },
+                    ].map((filter) => (
+                        <button
+                            key={filter.value}
+                            onClick={() => {
+                                setFilterStatus(filter.value);
+                                setPage(1);
+                            }}
+                            className={cn(
+                                "px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap",
+                                filterStatus === filter.value
+                                    ? "bg-card text-text-main shadow-sm border border-border-subtle"
+                                    : "text-text-muted hover:text-text-main hover:bg-card/50 border border-transparent",
+                                filter.value === 'overdue' && filterStatus === filter.value && "text-red-400"
+                            )}
+                        >
+                            {filter.label}
+                        </button>
+                    ))}
                 </div>
 
                 {/* Filters & Actions Bar */}
