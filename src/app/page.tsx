@@ -55,7 +55,7 @@ export default function Dashboard() {
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Export</span>
           </button>
-          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all shadow-sm flex items-center gap-2">
+          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Report
           </button>

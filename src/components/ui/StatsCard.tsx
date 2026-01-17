@@ -46,15 +46,13 @@ export default function StatsCard({ label, value, trend, trendUp, icon: Icon, co
                 {trend && (
                     <div className="flex items-center gap-2">
                         <span className={cn(
-                            "flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border",
-                            trendUp
-                                ? "bg-blue-50 dark:bg-blue-900/20 text-secondary border-blue-100 dark:border-blue-800/30"
-                                : "bg-rose-50 dark:bg-rose-900/20 text-destructive border-rose-100 dark:border-rose-800/30"
+                            "flex items-center gap-0.5 text-sm font-bold",
+                            trendUp ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                         )}>
                             {trendUp ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
                             {trend}
                         </span>
-                        <span className="text-xs text-text-muted font-medium">vs last month</span>
+                        <span className="text-xs text-text-muted">vs last month</span>
                     </div>
                 )}
             </div>

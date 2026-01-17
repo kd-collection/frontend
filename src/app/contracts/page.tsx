@@ -92,7 +92,7 @@ export default function ContractsPage() {
                             <Download className="h-4 w-4" />
                             <span className="hidden sm:inline">Export</span>
                         </button>
-                        <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all shadow-sm flex items-center gap-2">
+                        <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
                             <Plus className="h-4 w-4" />
                             New Contract
                         </button>
@@ -202,7 +202,7 @@ export default function ContractsPage() {
                                         </div>
 
                                         <div className="col-span-2 flex items-center gap-2">
-                                            <div className="h-6 w-6 rounded-full bg-indigo-50 dark:bg-indigo-900/40 text-[10px] font-bold text-primary flex items-center justify-center uppercase border border-primary-subtle">
+                                            <div className="h-6 w-6 rounded-full bg-blue-50 dark:bg-blue-900/40 text-[10px] font-bold text-primary flex items-center justify-center uppercase border border-primary-subtle">
                                                 {(contract.chandler || "A").charAt(0)}
                                             </div>
                                             <span className="text-xs text-text-muted">{contract.chandler || "Unassigned"}</span>

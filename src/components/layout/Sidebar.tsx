@@ -80,10 +80,10 @@ export default function Sidebar() {
             <div className="p-4 border-t border-border-subtle mx-4 mb-4">
                 <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-bg-card-hover transition-colors cursor-pointer group">
                     <div className="relative">
-                        <div className="h-9 w-9 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                        <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
                             AD
                         </div>
-                        <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-emerald-500 border-2 border-bg-card rounded-full" />
+                        <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-blue-500 border-2 border-card rounded-full" />
                     </div>
 
                     <div className="flex-1 min-w-0">

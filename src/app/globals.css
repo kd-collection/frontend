@@ -9,7 +9,7 @@
   --color-border-strong: var(--border-strong);
 
   --color-primary: var(--primary);
-  --color-primary-fg: var(--primary-foreground);
+  --color-primary-foreground: var(--primary-foreground);
   --color-primary-subtle: var(--primary-subtle);
 
   --color-secondary: var(--secondary);
