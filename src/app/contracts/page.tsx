@@ -14,18 +14,26 @@ import { CONTRACT_COLUMNS } from "@/lib/constants";
 import { useToast } from "@/components/ui/Toast";
 
 export default function ContractsPage() {
+    // Pagination State
+    const [page, setPage] = useState(1);
+    const LIMIT = 10;
+
     // React Query Hooks
-    const { data: contracts = [], isLoading, refetch, isRefetching } = useContracts();
+    const { data: queryResult, isLoading, refetch, isRefetching } = useContracts(page, LIMIT);
     const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
+
+    const contracts = queryResult?.data || [];
+    const pagination = queryResult?.pagination;
 
     const { toast } = useToast();
 
-    // Check for Demo Mode
+    // Check for Demo Mode - Only show once on mount/first load
     useEffect(() => {
-        if (!isLoading && contracts.length > 0 && process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-            toast("Running in Demo Mode. Using mock data.", "info");
+        if (!isLoading && contracts.length > 0 && process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && page === 1) {
+            // Toast removed to reduce noise on navigation, or can keep it
+            // toast("Running in Demo Mode. Using mock data.", "info");
         }
-    }, [isLoading, contracts.length, toast]);
+    }, [isLoading, contracts.length, page, toast]);
 
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
@@ -75,6 +83,7 @@ export default function ContractsPage() {
             await Promise.all(promises);
             toast(`Successfully deleted ${selectedIds.length} contract(s)`, "success");
             setSelectedIds([]); // Clear selection
+            refetch(); // Ensure list is refreshed
         } catch (error) {
             toast("Failed to delete some contracts", "error");
         }
@@ -273,7 +282,7 @@ export default function ContractsPage() {
                                                         <Square className="h-4 w-4 text-text-muted group-hover:text-text-main transition-colors" />
                                                     )}
                                                 </button>
-                                                <span className="text-xs font-mono text-text-muted">{i + 1}</span>
+                                                <span className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</span>
                                             </div>
 
                                             {visibleColumns.includes('contract_no') && (
@@ -415,10 +424,29 @@ export default function ContractsPage() {
 
                     {/* Pagination Footer */}
                     <div className="flex items-center justify-between px-6 py-3 border-t border-border-subtle bg-bg-app/30 backdrop-blur-sm">
-                        <p className="text-xs text-text-muted">Showing {filteredContracts.length} of {contracts.length} results</p>
-                        <div className="flex gap-2">
-                            <button className="px-3 py-1 text-xs rounded-lg border border-border-subtle text-text-main disabled:opacity-50 hover:bg-bg-card-hover" disabled>Previous</button>
-                            <button className="px-3 py-1 text-xs rounded-lg border border-border-subtle text-text-main hover:bg-bg-card-hover">Next</button>
+                        <p className="text-xs text-text-muted">
+                            Showing {filteredContracts.length} of {pagination?.total || contracts.length} results
+                        </p>
+                        <div className="flex items-center gap-4">
+                            <span className="text-xs text-text-muted font-medium">
+                                Page {page} of {pagination?.totalPages || 1}
+                            </span>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1 || isLoading}
+                                    className="px-3 py-1 text-xs rounded-lg border border-border-subtle text-text-main disabled:opacity-50 hover:bg-bg-card-hover transition-colors"
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => setPage(p => p + 1)}
+                                    disabled={!pagination || page >= pagination.totalPages || isLoading}
+                                    className="px-3 py-1 text-xs rounded-lg border border-border-subtle text-text-main disabled:opacity-50 hover:bg-bg-card-hover transition-colors"
+                                >
+                                    Next
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -8,26 +8,37 @@ let MOCK_CONTRACTS: Contract[] = [
     { nid: 3, ccontract_no: "CTR-2026-003", cname: "Raffi Ahmad", noutstanding: 75000000, narrears: 12000000, darea_date: "2026-01-10", chandler: "Agent Z" },
 ];
 
-export function useContracts() {
+export function useContracts(page: number = 1, limit: number = 10) {
     return useQuery({
-        queryKey: ["contracts"],
+        queryKey: ["contracts", page, limit],
         queryFn: async () => {
             try {
-                const response = await api.getContracts();
-                if (response.success && response.data) {
-                    return response.data;
+                const response = await api.getContracts({ page, limit });
+
+                // Response contains { data: Contract[], pagination: ... }
+                if (response && response.data) {
+                    return response; // Return the full object so UI gets pagination too
                 }
+
                 throw new Error("Failed to fetch contracts");
             } catch (error) {
                 if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
                     console.warn("API Error, falling back to mock data (DEMO MODE ACTIVE)", error);
-                    return MOCK_CONTRACTS;
+                    return {
+                        data: MOCK_CONTRACTS.slice((page - 1) * limit, page * limit),
+                        pagination: {
+                            page,
+                            limit,
+                            total: MOCK_CONTRACTS.length,
+                            totalPages: Math.ceil(MOCK_CONTRACTS.length / limit)
+                        }
+                    };
                 }
                 // In production, we throw so UI can handle error state
                 throw error;
             }
         },
-        // Optional: Keep previous data while fetching new data
+        // Keep previous data while fetching new data to avoid flickering
         placeholderData: (previousData) => previousData,
     });
 }

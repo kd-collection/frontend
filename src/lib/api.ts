@@ -56,8 +56,22 @@ class ApiClient {
     }
 
     // Contracts
-    async getContracts() {
-        return this.request<Contract[]>('/contracts');
+    async getContracts(params: { page?: number; limit?: number; search?: string } = {}) {
+        const query = new URLSearchParams();
+        if (params.page) query.append('page', params.page.toString());
+        if (params.limit) query.append('limit', params.limit.toString());
+        if (params.search) query.append('search', params.search);
+
+        const response = await this.request<Contract[]>(`/contracts?${query.toString()}`);
+
+        // The backend returns flattened structure { success: true, data: [], pagination: {} }
+        // We cast to any to access the pagination sibling property
+        const fullResponse = response as any;
+
+        return {
+            data: response.data || [],
+            pagination: fullResponse.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
+        };
     }
 
     async getContractStats() {
