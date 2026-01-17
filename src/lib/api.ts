@@ -68,6 +68,12 @@ class ApiClient {
         return this.request<Contract>(`/contracts/${id}`);
     }
 
+    async deleteContract(id: number) {
+        return this.request<{ success: boolean; id: number }>(`/contracts/${id}`, {
+            method: 'DELETE',
+        });
+    }
+
     // Customers
     async getCustomers() {
         return this.request<Customer[]>('/customers');

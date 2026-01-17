@@ -6,16 +6,18 @@ import { api, Contract } from "@/lib/api"; // Keep api for getContractById for n
 import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ContractDetailSheet from "@/components/ui/ContractDetailSheet";
-import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown } from "lucide-react";
+import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown, Trash2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContractSettings } from "@/hooks/useContractSettings";
-import { useContracts } from "@/hooks/useContracts";
+import { useContracts, useDeleteContract } from "@/hooks/useContracts";
 import { CONTRACT_COLUMNS } from "@/lib/constants";
 import { useToast } from "@/components/ui/Toast";
 
 export default function ContractsPage() {
-    // React Query Hook
+    // React Query Hooks
     const { data: contracts = [], isLoading, refetch, isRefetching } = useContracts();
+    const { mutate: deleteContract, isPending: isDeleting } = useDeleteContract();
+
     const { toast } = useToast();
 
     // Check for Demo Mode
@@ -51,6 +53,30 @@ export default function ContractsPage() {
             setSelectedIds([]);
         } else {
             setSelectedIds(contracts.map(c => c.nid));
+        }
+    };
+
+    const handleDeleteSelected = async () => {
+        if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} contract(s)? This action cannot be undone.`)) {
+            return;
+        }
+
+        // Parallel deletions
+        const promises = selectedIds.map(id =>
+            new Promise<void>((resolve, reject) => {
+                deleteContract(id, {
+                    onSuccess: () => resolve(),
+                    onError: (err) => reject(err)
+                });
+            })
+        );
+
+        try {
+            await Promise.all(promises);
+            toast(`Successfully deleted ${selectedIds.length} contract(s)`, "success");
+            setSelectedIds([]); // Clear selection
+        } catch (error) {
+            toast("Failed to delete some contracts", "error");
         }
     };
 
@@ -111,6 +137,22 @@ export default function ContractsPage() {
                         />
                     </div>
                     <div className="flex gap-2">
+                        <AnimatePresence>
+                            {selectedIds.length > 0 && (
+                                <motion.button
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    onClick={handleDeleteSelected}
+                                    disabled={isDeleting}
+                                    className="px-3 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium hover:bg-destructive/20 transition-all flex items-center gap-2"
+                                >
+                                    {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    <span className="hidden sm:inline">Delete ({selectedIds.length})</span>
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
+
                         <button className="px-4 py-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main text-sm font-medium flex items-center gap-2 hover:bg-bg-card-hover shadow-sm transition-all">
                             <Filter className="h-4 w-4" />
                             <span className="hidden sm:inline">Filters</span>
@@ -332,14 +374,40 @@ export default function ContractsPage() {
                             </AnimatePresence>
 
                             {filteredContracts.length === 0 && (
-                                <div className="p-12 text-center">
-                                    <p className="text-text-muted">No contracts found matching "{searchQuery}"</p>
-                                    <button
-                                        onClick={() => setSearchQuery("")}
-                                        className="mt-4 text-primary text-sm hover:underline"
-                                    >
-                                        Clear Search
-                                    </button>
+                                <div className="p-16 flex flex-col items-center justify-center text-center">
+                                    <div className="h-16 w-16 mb-4 rounded-2xl bg-bg-app flex items-center justify-center">
+                                        {searchQuery ? (
+                                            <Search className="h-8 w-8 text-text-muted/50" />
+                                        ) : (
+                                            <LayoutList className="h-8 w-8 text-text-muted/50" />
+                                        )}
+                                    </div>
+
+                                    {searchQuery ? (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-text-main">No matches found</h3>
+                                            <p className="text-sm text-text-muted mt-1 max-w-xs mx-auto">
+                                                No contracts matching <span className="font-mono text-xs bg-bg-app px-1.5 py-0.5 rounded border border-border-subtle">"{searchQuery}"</span>
+                                            </p>
+                                            <button
+                                                onClick={() => setSearchQuery("")}
+                                                className="mt-6 px-4 py-2 rounded-lg bg-bg-app border border-border-subtle text-sm font-medium text-text-main hover:bg-bg-card-hover transition-all"
+                                            >
+                                                Clear Search
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <h3 className="text-lg font-semibold text-text-main">No contracts yet</h3>
+                                            <p className="text-sm text-text-muted mt-1 max-w-sm mx-auto">
+                                                Your database is empty. Contracts will appear here once they are created or synchronized.
+                                            </p>
+                                            <button className="mt-6 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
+                                                <Plus className="h-4 w-4" />
+                                                Create First Contract
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
