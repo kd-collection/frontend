@@ -82,13 +82,33 @@ class ApiClient {
 export interface Contract {
     nid: number;
     ccontract_no: string;
+    ccust_id?: string;
     cname?: string;           // Legacy field
     customer_name?: string;   // From DB join
+    customer_nik?: string;
+    customer_phone?: string;
+    customer_email?: string;
     noutstanding: number | string;
+    nloan_amount?: number | string;
+    ntenor?: number;
     narrears: number | string;
+    ncard_count?: number;
+    nlundis?: number | string;
+    cva_account?: string;
+    chandler?: string;
+    carea?: string;
     dlast_payment?: string;
     darea_date?: string;
-    chandler?: string;
+    ddisbursement?: string;
+    // Customer addresses
+    caddress_home?: string;
+    caddress_ktp?: string;
+    coffice_name?: string;
+    coffice_address?: string;
+    // Emergency contact
+    cec_name?: string;
+    cec_phone?: string;
+    cec_address?: string;
 }
 
 export interface ContractStats {
