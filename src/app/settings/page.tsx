@@ -72,15 +72,18 @@ export default function SettingsPage() {
                                 const isFilled = !!column;
 
                                 return (
-                                    <div
+                                    <button
                                         key={i}
+                                        type="button"
                                         onClick={() => isFilled && toggleColumn(columnId)}
+                                        disabled={!isFilled}
                                         className={cn(
-                                            "relative h-14 rounded-lg flex items-center justify-center border-2 border-dashed transition-all duration-200 group",
+                                            "relative h-14 rounded-lg flex items-center justify-center border-2 border-dashed transition-all duration-200 group w-full",
                                             isFilled
                                                 ? "bg-bg-app border-primary/30 cursor-pointer hover:border-destructive/50 hover:bg-destructive/10"
-                                                : "bg-bg-app/30 border-border-subtle"
+                                                : "bg-bg-app/30 border-border-subtle cursor-default"
                                         )}
+                                        aria-label={isFilled ? `Remove ${column.label} column` : "Empty slot"}
                                     >
                                         {isFilled ? (
                                             <div className="flex items-center gap-2 px-3 w-full justify-between">
@@ -92,7 +95,7 @@ export default function SettingsPage() {
                                         ) : (
                                             <span className="text-xs font-medium text-text-muted/40">Empty Slot</span>
                                         )}
-                                    </div>
+                                    </button>
                                 );
                             })}
                         </div>
