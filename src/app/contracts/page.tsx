@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatIDR, cn } from "@/lib/utils";
 import { api, Contract } from "@/lib/api"; // Keep api for getContractById for now
 import Badge from "@/components/ui/Badge";
@@ -11,10 +11,19 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useContractSettings } from "@/hooks/useContractSettings";
 import { useContracts } from "@/hooks/useContracts";
 import { CONTRACT_COLUMNS } from "@/lib/constants";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ContractsPage() {
     // React Query Hook
     const { data: contracts = [], isLoading, refetch, isRefetching } = useContracts();
+    const { toast } = useToast();
+
+    // Check for Demo Mode
+    useEffect(() => {
+        if (!isLoading && contracts.length > 0 && process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+            toast("Running in Demo Mode. Using mock data.", "info");
+        }
+    }, [isLoading, contracts.length, toast]);
 
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [searchQuery, setSearchQuery] = useState("");

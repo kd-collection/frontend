@@ -19,11 +19,12 @@ export function useContracts() {
                 }
                 throw new Error("Failed to fetch contracts");
             } catch (error) {
-                console.warn("API Error, falling back to mock data (DEMO MODE)", error);
-                // In a real app, we might want to throw here to show specific error UI.
-                // For this demo context, we fallback to mock data as per previous behavior,
-                // but now explicitly controlled.
-                return MOCK_CONTRACTS;
+                if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+                    console.warn("API Error, falling back to mock data (DEMO MODE ACTIVE)", error);
+                    return MOCK_CONTRACTS;
+                }
+                // In production, we throw so UI can handle error state
+                throw error;
             }
         },
         // Optional: Keep previous data while fetching new data
