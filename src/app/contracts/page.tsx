@@ -279,23 +279,7 @@ export default function ContractsPage() {
                             )}
                         </AnimatePresence>
 
-                        {/* Handler Filter Mockup */}
-                        <div className="relative">
-                            <select
-                                value={filterHandler}
-                                onChange={(e) => {
-                                    setFilterHandler(e.target.value);
-                                    setPage(1); // Reset page on filter
-                                }}
-                                className="appearance-none px-4 py-2 pl-9 rounded-lg bg-card border border-border-subtle text-sm font-medium text-text-main hover:bg-bg-card-hover shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
-                            >
-                                <option value="">All Handlers</option>
-                                <option value="Agent X">Agent X</option>
-                                <option value="Agent Y">Agent Y</option>
-                                <option value="Agent Z">Agent Z</option>
-                            </select>
-                            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-muted pointer-events-none" />
-                        </div>
+
                         <button
                             onClick={() => refetch()}
                             disabled={isRefetching}
