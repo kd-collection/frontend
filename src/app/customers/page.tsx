@@ -11,8 +11,32 @@ import { useCustomerSettings } from "@/hooks/useCustomerSettings";
 import { CUSTOMER_COLUMNS } from "@/lib/constants";
 import { Customer } from "@/lib/api";
 import CustomerDetailSheet from "@/components/ui/CustomerDetailSheet";
+import CustomerFormModal from "@/components/ui/CustomerFormModal";
+import { useToast } from "@/components/ui/Toast";
 
 export default function CustomersPage() {
+    const { toast } = useToast();
+
+    // Form Modal State
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+
+    const openCreateModal = () => {
+        setEditingCustomer(null);
+        setIsFormOpen(true);
+    };
+
+    const handleEdit = (customer: Customer) => {
+        setEditingCustomer(customer);
+        setIsFormOpen(true);
+    };
+
+    const handleDelete = (id: number) => {
+        if (confirm("Are you sure you want to delete this customer?")) {
+            toast("Delete feature coming soon", "info");
+        }
+    };
+
     const searchParams = useSearchParams();
     const router = useRouter();
     const pathname = usePathname();
@@ -124,6 +148,7 @@ export default function CustomersPage() {
                             <span className="hidden sm:inline">Export</span>
                         </button>
                         <button
+                            onClick={openCreateModal}
                             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2"
                         >
                             <Plus className="h-4 w-4" />
@@ -313,16 +338,22 @@ export default function CustomersPage() {
                                             </div>
                                         )}
 
-                                        <div className="flex justify-center gap-1">
+                                        <div className="flex justify-center gap-1 relative z-20">
                                             <button
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-primary transition-colors"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleEdit(customer);
+                                                }}
+                                                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-bg-app text-text-muted hover:text-primary transition-all active:scale-95"
                                             >
                                                 <Pencil className="h-4 w-4" />
                                             </button>
                                             <button
-                                                onClick={(e) => e.stopPropagation()}
-                                                className="p-1.5 rounded-md hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(customer.nid);
+                                                }}
+                                                className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-all active:scale-95"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
@@ -380,6 +411,12 @@ export default function CustomersPage() {
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
             />
-        </div >
+
+            <CustomerFormModal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                customer={editingCustomer}
+            />
+        </div>
     );
 }

@@ -132,6 +132,26 @@ class ApiClient {
     async getCustomerById(id: number) {
         return this.request<Customer>(`/customers/${id}`);
     }
+
+    async createCustomer(data: Partial<Customer>) {
+        return this.request<Customer>('/customers', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async updateCustomer(id: number, data: Partial<Customer>) {
+        return this.request<Customer>(`/customers/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    }
+
+    async deleteCustomer(id: number) {
+        return this.request<{ success: boolean; id: number }>(`/customers/${id}`, {
+            method: 'DELETE',
+        });
+    }
 }
 
 // Types

@@ -494,9 +494,9 @@ export default function ContractsPage() {
                                                     </div>
                                                 )}
 
-                                                <div className="flex justify-center gap-1">
+                                                <div className="flex justify-center gap-1 relative z-20">
                                                     <button
-                                                        className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-primary transition-colors"
+                                                        className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-bg-app text-text-muted hover:text-primary transition-all active:scale-95"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             openEditModal(contract);
@@ -506,7 +506,7 @@ export default function ContractsPage() {
                                                         <Pencil className="h-4 w-4" />
                                                     </button>
                                                     <button
-                                                        className="p-1.5 rounded-md hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors"
+                                                        className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-all active:scale-95"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             handleSingleDelete(contract.nid);

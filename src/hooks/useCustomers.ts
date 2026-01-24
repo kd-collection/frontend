@@ -59,3 +59,33 @@ export function useCustomers(params: UseCustomersParams = {}) {
         placeholderData: (previousData) => previousData,
     });
 }
+
+export function useCreateCustomer() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: Partial<Customer>) => api.createCustomer(data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["customers"] });
+        }
+    });
+}
+
+export function useUpdateCustomer() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ id, data }: { id: number; data: Partial<Customer> }) => api.updateCustomer(id, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["customers"] });
+        }
+    });
+}
+
+export function useDeleteCustomer() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) => api.deleteCustomer(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["customers"] });
+        }
+    });
+}
