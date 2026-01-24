@@ -163,3 +163,16 @@ export function useUpdateContract() {
     });
 }
 
+export function useContractStats() {
+    return useQuery({
+        queryKey: ["contracts", "stats"],
+        queryFn: async () => {
+            const response = await api.getContractStats();
+            if (response.success && response.data) {
+                return response.data;
+            }
+            throw new Error(response.message || "Failed to fetch stats");
+        }
+    });
+}
+

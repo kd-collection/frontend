@@ -2,24 +2,12 @@
 
 import StatsCard from "@/components/ui/StatsCard";
 import OverviewChart from "@/components/dashboard/OverviewChart";
-import { BadgeDollarSign, Users, TrendingUp, AlertTriangle, ArrowRight, Activity, Download } from "lucide-react";
+import { BadgeDollarSign, Users, TrendingUp, AlertTriangle, ArrowRight, Activity, Download, LayoutList, CalendarClock } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-
-// Mock Data
-const recentCollections = [
-  { id: 1, name: "Budi Santoso", amount: "Rp 500.000", time: "2m ago", status: "Paid", avatar: "BS" },
-  { id: 2, name: "Siti Aminah", amount: "Rp 1.200.000", time: "15m ago", status: "Partial", avatar: "SA" },
-  { id: 3, name: "Ahmad Rizky", amount: "Rp 750.000", time: "1h ago", status: "Paid", avatar: "AR" },
-  { id: 4, name: "Dewi Lestari", amount: "Rp 3.000.000", time: "3h ago", status: "Paid", avatar: "DL" },
-];
-
-const highPriority = [
-  { id: "CTR-2026-001", name: "Budi Santoso", arrears: "Rp 5.500.000", risk: "High", days: 45 },
-  { id: "CTR-2026-089", name: "Kevin Sanjaya", arrears: "Rp 12.000.000", risk: "Critical", days: 60 },
-  { id: "CTR-2026-112", name: "Marcus Gideon", arrears: "Rp 8.200.000", risk: "High", days: 32 },
-];
+import { cn, formatIDR, formatDate } from "@/lib/utils";
+import { useContractStats } from "@/hooks/useContracts";
+import Badge from "@/components/ui/Badge";
 
 const container = {
   hidden: { opacity: 0 },
@@ -37,6 +25,19 @@ const item = {
 };
 
 export default function Dashboard() {
+  const { data: stats, isLoading } = useContractStats();
+
+  if (isLoading || !stats) {
+    return (
+      <div className="flex h-[80vh] w-full items-center justify-center flex-col gap-4">
+        <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <p className="text-sm font-medium text-text-muted animate-pulse">Loading Dashboard Dashboard...</p>
+      </div>
+    )
+  }
+
+  const { summary, highPriority, recent } = stats;
+
   return (
     <motion.div
       variants={container}
@@ -67,8 +68,8 @@ export default function Dashboard() {
         <motion.div variants={item} className="group">
           <StatsCard
             label="Total Outstanding"
-            value="Rp 1.25M"
-            trend="12.5%"
+            value={formatIDR(Number(summary.total_outstanding))}
+            trend="Live"
             trendUp={false}
             icon={BadgeDollarSign}
             color="destructive"
@@ -76,19 +77,19 @@ export default function Dashboard() {
         </motion.div>
         <motion.div variants={item} className="group">
           <StatsCard
-            label="Active Customers"
-            value="1,284"
-            trend="5.2%"
+            label="Active Contracts"
+            value={Number(summary.total_contracts).toLocaleString()}
+            trend={`${summary.total_handlers} Handlers`}
             trendUp={true}
-            icon={Users}
+            icon={LayoutList}
             color="primary"
           />
         </motion.div>
         <motion.div variants={item} className="group">
           <StatsCard
-            label="Recovery Rate"
-            value="84.2%"
-            trend="2.1%"
+            label="Total Loan Value"
+            value={formatIDR(Number(summary.total_loan_amount))}
+            trend="Portfolio"
             trendUp={true}
             icon={TrendingUp}
             color="secondary"
@@ -96,9 +97,9 @@ export default function Dashboard() {
         </motion.div>
         <motion.div variants={item} className="group">
           <StatsCard
-            label="Risk Exposure"
-            value="142"
-            trend="4.3%"
+            label="Total Arrears (Risk)"
+            value={formatIDR(Number(summary.total_arrears))}
+            trend="Exposure"
             trendUp={false}
             icon={AlertTriangle}
             color="accent"
@@ -114,6 +115,7 @@ export default function Dashboard() {
 
           {/* Main Chart Section */}
           <motion.div variants={item} className="p-6 rounded-xl border border-border-subtle bg-card shadow-sm h-[400px]">
+            {/* Chart Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-base font-bold text-text-main">Recovery Performance</h3>
@@ -147,38 +149,48 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-bold text-text-main flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                Priority Attention
+                Highest Arrears (Priority)
               </h3>
-              <Link href="/contracts" className="text-xs font-semibold text-primary hover:text-primary/70 transition-colors flex items-center gap-1 group">
+              <Link href="/contracts?sortBy=arrears&sortOrder=DESC" className="text-xs font-semibold text-primary hover:text-primary/70 transition-colors flex items-center gap-1 group">
                 View All Risk <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
               </Link>
             </div>
 
             <div className="space-y-3">
-              {highPriority.map((contract) => (
-                <div key={contract.id} className="group flex items-center justify-between p-3 rounded-lg bg-bg-app/50 border border-border-subtle hover:border-border-strong hover:bg-bg-card-hover transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-rose-50 dark:bg-rose-900/10 text-destructive flex flex-col items-center justify-center border border-rose-100 dark:border-rose-900/20">
-                      <span className="text-xs font-bold">{contract.days}</span>
-                      <span className="text-[8px] uppercase font-bold opacity-70">Days</span>
+              {highPriority.length === 0 ? (
+                <div className="text-center py-8 text-text-muted text-sm">No high priority contracts found.</div>
+              ) : (
+                highPriority.map((contract) => (
+                  <div key={contract.nid} className="group flex items-center justify-between p-3 rounded-lg bg-bg-app/50 border border-border-subtle hover:border-border-strong hover:bg-bg-card-hover transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex flex-col items-center justify-center border border-rose-500/20 shadow-sm">
+                        <span className="text-xs font-bold">
+                          {(() => {
+                            const due = new Date(contract.darea_date || new Date());
+                            const days = Math.floor((new Date().getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+                            return Math.max(0, days);
+                          })()}
+                        </span>
+                        <span className="text-[8px] uppercase font-bold opacity-70">Days</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors">{contract.customer_name || contract.cname}</p>
+                        <p className="text-[11px] text-text-muted font-mono">{contract.ccontract_no}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors">{contract.name}</p>
-                      <p className="text-[11px] text-text-muted font-mono">{contract.id}</p>
-                    </div>
-                  </div>
 
-                  <div className="flex items-center gap-6">
-                    <div className="text-right hidden sm:block">
-                      <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Arrears</p>
-                      <p className="text-sm font-bold text-text-main tabular-nums">{contract.arrears}</p>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right hidden sm:block">
+                        <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Arrears</p>
+                        <p className="text-sm font-bold text-text-main tabular-nums">{formatIDR(Number(contract.narrears))}</p>
+                      </div>
+                      <Badge variant="danger" glow>
+                        HIGH
+                      </Badge>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 dark:bg-rose-900/20 text-destructive border border-rose-200 dark:border-rose-800 uppercase tracking-wide">
-                      {contract.risk}
-                    </span>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </motion.div>
 
@@ -187,32 +199,38 @@ export default function Dashboard() {
         {/* Right Column (1/3) */}
         <div className="space-y-6">
           <motion.div variants={item} className="p-6 rounded-xl h-full border border-border-subtle bg-card shadow-sm flex flex-col">
-            <h3 className="text-base font-bold text-text-main mb-6">Live Activity Feed</h3>
+            <h3 className="text-base font-bold text-text-main mb-6">Recent Contracts</h3>
 
             <div className="relative border-l border-border-subtle ml-2 space-y-6 flex-1">
-              {recentCollections.map((log, i) => (
-                <div key={log.id} className="relative pl-6 group">
-                  {/* Timeline Dot */}
-                  <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-secondary border-2 border-card group-hover:scale-110 transition-transform shadow-sm"></div>
+              {recent.length === 0 ? (
+                <div className="text-center py-10 text-text-muted text-sm">No recent activity.</div>
+              ) : (
+                recent.map((contract, i) => (
+                  <div key={contract.nid} className="relative pl-6 group">
+                    {/* Timeline Dot */}
+                    <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-secondary border-2 border-card group-hover:scale-110 transition-transform shadow-sm"></div>
 
-                  <div className="flex justify-between items-start mb-0.5">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors">{log.name}</p>
+                    <div className="flex justify-between items-start mb-0.5">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors truncate max-w-[120px]">
+                          {contract.customer_name || contract.cname}
+                        </p>
+                      </div>
+                      <span className="text-[10px] font-medium text-text-muted/70">{formatDate(contract.dcreated_at)}</span>
                     </div>
-                    <span className="text-[10px] font-medium text-text-muted/70">{log.time}</span>
-                  </div>
 
-                  <div className="flex items-center gap-2">
-                    <p className="text-xs text-secondary font-bold tracking-tight">{log.amount}</p>
-                    <span className="h-0.5 w-0.5 rounded-full bg-text-muted/50"></span>
-                    <span className="text-[10px] text-text-muted uppercase tracking-wide font-medium">{log.status}</span>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-secondary font-bold tracking-tight">{formatIDR(Number(contract.nloan_amount))}</p>
+                      <span className="h-0.5 w-0.5 rounded-full bg-text-muted/50"></span>
+                      <span className="text-[10px] text-text-muted uppercase tracking-wide font-medium">NEW Loan</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             <button className="w-full py-2.5 mt-6 rounded-lg bg-bg-app hover:bg-bg-card-hover text-xs font-semibold text-text-muted hover:text-text-main transition-all border border-border-subtle hover:border-border-strong">
-              View Audit Log
+              View All Contracts
             </button>
           </motion.div>
         </div>

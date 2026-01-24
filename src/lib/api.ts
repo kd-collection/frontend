@@ -164,13 +164,20 @@ export interface Contract {
     cec_name?: string;
     cec_phone?: string;
     cec_address?: string;
+    dcreated_at?: string;
+    dmodified_at?: string;
 }
 
 export interface ContractStats {
-    totalOutstanding: number;
-    totalContracts: number;
-    overdueContracts: number;
-    recoveryRate: number;
+    summary: {
+        total_contracts: number;
+        total_outstanding: number | string;
+        total_arrears: number | string;
+        total_loan_amount: number | string;
+        total_handlers: number;
+    };
+    highPriority: Contract[];
+    recent: Contract[];
 }
 
 export interface Customer {
