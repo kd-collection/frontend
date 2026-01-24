@@ -160,187 +160,191 @@ export default function CustomersPage() {
             </div>
 
             {/* Data Table */}
-            <div className="rounded-xl border border-border-subtle bg-card overflow-hidden flex flex-col shadow-sm">
-                {/* Header */}
-                <div
-                    className="grid gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm"
-                    style={{ gridTemplateColumns }}
-                >
-                    <div>#</div>
-
-                    {visibleColumns.includes('name') && (
+            <div className="rounded-xl border border-border-subtle bg-card shadow-sm flex flex-col overflow-hidden">
+                <div className="overflow-x-auto custom-scrollbar">
+                    <div className="min-w-[1000px]">
+                        {/* Header */}
                         <div
-                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                            onClick={() => handleSort('name')}
+                            className="grid gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm"
+                            style={{ gridTemplateColumns }}
                         >
-                            Name
-                            {sortBy === 'name' ? (
-                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                            ) : (
-                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div>#</div>
+
+                            {visibleColumns.includes('name') && (
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                    onClick={() => handleSort('name')}
+                                >
+                                    Name
+                                    {sortBy === 'name' ? (
+                                        sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
 
-                    {visibleColumns.includes('nik') && (
-                        <div
-                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                            onClick={() => handleSort('nik')}
-                        >
-                            NIK
-                            {sortBy === 'nik' ? (
-                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                            ) : (
-                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {visibleColumns.includes('nik') && (
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                    onClick={() => handleSort('nik')}
+                                >
+                                    NIK
+                                    {sortBy === 'nik' ? (
+                                        sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
 
-                    {visibleColumns.includes('phone') && (
-                        <div
-                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                            onClick={() => handleSort('phone')}
-                        >
-                            Phone
-                            {sortBy === 'phone' ? (
-                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                            ) : (
-                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {visibleColumns.includes('phone') && (
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                    onClick={() => handleSort('phone')}
+                                >
+                                    Phone
+                                    {sortBy === 'phone' ? (
+                                        sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
 
-                    {visibleColumns.includes('address') && (
-                        <div
-                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                            onClick={() => handleSort('address')}
-                        >
-                            Address
-                            {sortBy === 'address' ? (
-                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                            ) : (
-                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {visibleColumns.includes('address') && (
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                    onClick={() => handleSort('address')}
+                                >
+                                    Address
+                                    {sortBy === 'address' ? (
+                                        sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
 
-                    {visibleColumns.includes('company') && (
-                        <div
-                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                            onClick={() => handleSort('company')}
-                        >
-                            Company
-                            {sortBy === 'company' ? (
-                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                            ) : (
-                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {visibleColumns.includes('company') && (
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                    onClick={() => handleSort('company')}
+                                >
+                                    Company
+                                    {sortBy === 'company' ? (
+                                        sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    )}
+                                </div>
                             )}
-                        </div>
-                    )}
 
-                    {visibleColumns.includes('emergency') && (
-                        <div
-                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                            onClick={() => handleSort('emergency')}
-                        >
-                            Emergency
-                            {sortBy === 'emergency' ? (
-                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                            ) : (
-                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            {visibleColumns.includes('emergency') && (
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                    onClick={() => handleSort('emergency')}
+                                >
+                                    Emergency
+                                    {sortBy === 'emergency' ? (
+                                        sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                    ) : (
+                                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    )}
+                                </div>
                             )}
+
+                            <div className="text-center">Action</div>
                         </div>
-                    )}
 
-                    <div className="text-center">Action</div>
-                </div>
+                        {/* Body */}
+                        {(isLoading || !mounted) ? (
+                            <div className="h-96 flex flex-col items-center justify-center gap-4">
+                                <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                                <p className="text-sm font-medium text-text-muted animate-pulse">Loading Customers...</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-border-subtle bg-card">
+                                {customers.map((customer, i) => (
+                                    <div
+                                        key={customer.nid}
+                                        onClick={() => openCustomerDetail(customer)}
+                                        style={{ gridTemplateColumns }}
+                                        className="grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative hover:bg-bg-card-hover cursor-pointer"
+                                    >
+                                        <div className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</div>
 
-                {/* Body */}
-                {(isLoading || !mounted) ? (
-                    <div className="h-96 flex flex-col items-center justify-center gap-4">
-                        <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-                        <p className="text-sm font-medium text-text-muted animate-pulse">Loading Customers...</p>
-                    </div>
-                ) : (
-                    <div className="divide-y divide-border-subtle bg-card">
-                        {customers.map((customer, i) => (
-                            <div
-                                key={customer.nid}
-                                onClick={() => openCustomerDetail(customer)}
-                                style={{ gridTemplateColumns }}
-                                className="grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative hover:bg-bg-card-hover cursor-pointer"
-                            >
-                                <div className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</div>
+                                        {visibleColumns.includes('name') && (
+                                            <div className="flex items-center gap-3">
+                                                <div>
+                                                    <div className="font-semibold text-text-main text-sm">{customer.cname || "Unknown"}</div>
+                                                    <div className="text-[10px] text-text-muted">{customer.cemail || "No email"}</div>
+                                                </div>
+                                            </div>
+                                        )}
 
-                                {visibleColumns.includes('name') && (
-                                    <div className="flex items-center gap-3">
-                                        <div>
-                                            <div className="font-semibold text-text-main text-sm">{customer.cname || "Unknown"}</div>
-                                            <div className="text-[10px] text-text-muted">{customer.cemail || "No email"}</div>
+                                        {visibleColumns.includes('nik') && (
+                                            <div className="text-xs font-mono text-text-muted">{customer.cnik || "-"}</div>
+                                        )}
+
+                                        {visibleColumns.includes('phone') && (
+                                            <div className="text-xs text-text-muted">{(() => {
+                                                const isValid = (p?: string | null) => p && p !== "-" && p !== "0" && p.trim() !== "";
+                                                const bestPhone = isValid(customer.cphone) ? customer.cphone : customer.cphone2;
+                                                return formatPhoneNumber(bestPhone);
+                                            })()}</div>
+                                        )}
+
+                                        {visibleColumns.includes('address') && (
+                                            <div className="text-xs text-text-muted truncate" title={customer.caddress_home || ""}>
+                                                {customer.caddress_home || "-"}
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('company') && (
+                                            <div className="text-xs text-text-muted truncate" title={customer.coffice_name || ""}>
+                                                {customer.coffice_name || "-"}
+                                            </div>
+                                        )}
+
+                                        {visibleColumns.includes('emergency') && (
+                                            <div className="text-xs text-text-muted truncate" title={customer.cec_name || ""}>
+                                                {customer.cec_name || "-"}
+                                            </div>
+                                        )}
+
+                                        <div className="flex justify-center gap-1">
+                                            <button
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-primary transition-colors"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="p-1.5 rounded-md hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
                                         </div>
                                     </div>
-                                )}
+                                ))}
 
-                                {visibleColumns.includes('nik') && (
-                                    <div className="text-xs font-mono text-text-muted">{customer.cnik || "-"}</div>
-                                )}
-
-                                {visibleColumns.includes('phone') && (
-                                    <div className="text-xs text-text-muted">{(() => {
-                                        const isValid = (p?: string | null) => p && p !== "-" && p !== "0" && p.trim() !== "";
-                                        const bestPhone = isValid(customer.cphone) ? customer.cphone : customer.cphone2;
-                                        return formatPhoneNumber(bestPhone);
-                                    })()}</div>
-                                )}
-
-                                {visibleColumns.includes('address') && (
-                                    <div className="text-xs text-text-muted truncate" title={customer.caddress_home || ""}>
-                                        {customer.caddress_home || "-"}
+                                {customers.length === 0 && (
+                                    <div className="p-16 flex flex-col items-center justify-center text-center">
+                                        <div className="h-16 w-16 mb-4 rounded-2xl bg-bg-app flex items-center justify-center">
+                                            <User className="h-8 w-8 text-text-muted/50" />
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-text-main">No customers found</h3>
+                                        <p className="text-sm text-text-muted mt-1 max-w-xs mx-auto">
+                                            Try adjusting your search criteria or add a new customer.
+                                        </p>
                                     </div>
                                 )}
-
-                                {visibleColumns.includes('company') && (
-                                    <div className="text-xs text-text-muted truncate" title={customer.coffice_name || ""}>
-                                        {customer.coffice_name || "-"}
-                                    </div>
-                                )}
-
-                                {visibleColumns.includes('emergency') && (
-                                    <div className="text-xs text-text-muted truncate" title={customer.cec_name || ""}>
-                                        {customer.cec_name || "-"}
-                                    </div>
-                                )}
-
-                                <div className="flex justify-center gap-1">
-                                    <button
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-primary transition-colors"
-                                    >
-                                        <Pencil className="h-4 w-4" />
-                                    </button>
-                                    <button
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="p-1.5 rounded-md hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-
-                        {customers.length === 0 && (
-                            <div className="p-16 flex flex-col items-center justify-center text-center">
-                                <div className="h-16 w-16 mb-4 rounded-2xl bg-bg-app flex items-center justify-center">
-                                    <User className="h-8 w-8 text-text-muted/50" />
-                                </div>
-                                <h3 className="text-lg font-semibold text-text-main">No customers found</h3>
-                                <p className="text-sm text-text-muted mt-1 max-w-xs mx-auto">
-                                    Try adjusting your search criteria or add a new customer.
-                                </p>
                             </div>
                         )}
                     </div>
-                )}
+                </div>
 
                 {/* Footer */}
                 <div className="flex items-center justify-between px-6 py-3 border-t border-border-subtle bg-bg-app/30 backdrop-blur-sm">
@@ -369,13 +373,13 @@ export default function CustomersPage() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </div >
 
             <CustomerDetailSheet
                 customer={selectedCustomer}
                 isOpen={isDetailOpen}
                 onClose={() => setIsDetailOpen(false)}
             />
-        </div>
+        </div >
     );
 }

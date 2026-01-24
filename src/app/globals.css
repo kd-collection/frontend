@@ -137,6 +137,11 @@ body {
   border: 1px solid var(--glass-border);
 }
 
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-dim) transparent;
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar {
   width: 8px;

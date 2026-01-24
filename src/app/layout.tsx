@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Sidebar from "@/components/layout/Sidebar";
-import TopBar from "@/components/layout/TopBar";
+import ClientLayout from "@/components/layout/ClientLayout";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import QueryProvider from "@/components/providers/QueryProvider";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -40,20 +39,9 @@ export default function RootLayout({
         >
           <QueryProvider>
             <ToastProvider>
-              <div className="flex min-h-screen">
-                <Sidebar />
-                <div className="flex-1 ml-64 flex flex-col min-h-screen relative z-10 transition-colors duration-300">
-                  <TopBar />
-                  <main className="flex-1 p-8 overflow-y-auto scroll-smooth">
-                    <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                      {children}
-                    </div>
-                  </main>
-                </div>
-
-                {/* Ambient Background Glows - Adjusted for simpler theme */}
-                <div className="fixed top-0 left-64 w-[800px] h-[800px] bg-primary/5 dark:bg-primary/10 rounded-full blur-[128px] pointer-events-none mix-blend-multiply dark:mix-blend-screen -z-0" />
-              </div>
+              <ClientLayout>
+                {children}
+              </ClientLayout>
             </ToastProvider>
           </QueryProvider>
         </ThemeProvider>

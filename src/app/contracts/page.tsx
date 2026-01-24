@@ -288,278 +288,283 @@ export default function ContractsPage() {
                 </div>
 
                 {/* Data Table */}
-                <div className="rounded-xl border border-border-subtle bg-card overflow-hidden flex flex-col shadow-sm">
+                <div className="rounded-xl border border-border-subtle bg-card shadow-sm flex flex-col overflow-hidden">
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <div className="min-w-[1000px]">
 
-                    {/* Table Header */}
-                    <div
-                        className="grid gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm"
-                        style={{ gridTemplateColumns }}
-                    >
-                        <div className="flex items-center">
-                            <span>#</span>
-                        </div>
-
-                        {visibleColumns.includes('contract_no') && (
+                            {/* Table Header */}
                             <div
-                                className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                                onClick={() => handleSort('contract_no')}
+                                className="grid gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm"
+                                style={{ gridTemplateColumns }}
                             >
-                                Contract No
-                                {sortBy === 'contract_no' ? (
-                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                                ) : (
-                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </div>
-                        )}
+                                <div className="flex items-center">
+                                    <span>#</span>
+                                </div>
 
-                        {visibleColumns.includes('customer_info') && (
-                            <div
-                                className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                                onClick={() => handleSort('customer_name')}
-                            >
-                                Customer Info
-                                {sortBy === 'customer_name' ? (
-                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                                ) : (
-                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </div>
-                        )}
-
-                        {visibleColumns.includes('balance') && (
-                            <div
-                                className="flex items-center justify-end gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                                onClick={() => handleSort('outstanding')}
-                            >
-                                Balance
-                                {sortBy === 'outstanding' ? (
-                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                                ) : (
-                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </div>
-                        )}
-
-                        {visibleColumns.includes('handler') && (
-                            <div>Handler</div>
-                        )}
-
-                        {visibleColumns.includes('status') && (
-                            <div className="text-center">Status</div>
-                        )}
-
-                        {visibleColumns.includes('loan_amount') && (
-                            <div
-                                className="flex items-center justify-end gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                                onClick={() => handleSort('loan_amount')}
-                            >
-                                Loan Amount
-                                {sortBy === 'loan_amount' ? (
-                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                                ) : (
-                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </div>
-                        )}
-
-                        {visibleColumns.includes('tenor') && (
-                            <div className="text-center">Tenor</div>
-                        )}
-
-                        {visibleColumns.includes('va_account') && (
-                            <div>VA Account</div>
-                        )}
-
-                        {visibleColumns.includes('area') && (
-                            <div>Area</div>
-                        )}
-
-                        {visibleColumns.includes('due_date') && (
-                            <div
-                                className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
-                                onClick={() => handleSort('due_date')}
-                            >
-                                Due Date
-                                {sortBy === 'due_date' ? (
-                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
-                                ) : (
-                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                            </div>
-                        )}
-
-                        {visibleColumns.includes('disbursement_date') && (
-                            <div>Disburse Date</div>
-                        )}
-
-                        <div className="text-center">Action</div>
-                    </div>
-
-                    {/* Table Body */}
-                    {(isLoading || !mounted) ? (
-                        <div className="h-96 flex flex-col items-center justify-center gap-4">
-                            <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-                            <p className="text-sm font-medium text-text-muted animate-pulse">Syncing Database...</p>
-                        </div>
-                    ) : (
-                        <div className="divide-y divide-border-subtle bg-card">
-                            {filteredContracts.map((contract, i) => {
-                                return (
+                                {visibleColumns.includes('contract_no') && (
                                     <div
-                                        key={contract.nid}
-                                        onClick={() => openContractDetail(contract.nid)}
-                                        style={{ gridTemplateColumns }}
-                                        className="grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative cursor-pointer hover:bg-bg-card-hover"
+                                        className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                        onClick={() => handleSort('contract_no')}
                                     >
-                                        <div className="flex items-center z-10">
-                                            <span className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</span>
-                                        </div>
-
-                                        {visibleColumns.includes('contract_no') && (
-                                            <div className="font-mono text-xs text-text-muted group-hover:text-primary transition-colors font-medium">
-                                                {contract.ccontract_no}
-                                            </div>
+                                        Contract No
+                                        {sortBy === 'contract_no' ? (
+                                            sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                        ) : (
+                                            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         )}
+                                    </div>
+                                )}
 
-                                        {visibleColumns.includes('customer_info') && (
-                                            <div>
-                                                <p className="font-semibold text-text-main text-sm">{contract.customer_name || contract.cname || "Unknown Customer"}</p>
-                                                <p className="text-[11px] text-text-muted mt-0.5">Due: {contract.darea_date ? new Date(contract.darea_date).toLocaleDateString() : 'N/A'}</p>
-                                            </div>
+                                {visibleColumns.includes('customer_info') && (
+                                    <div
+                                        className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                        onClick={() => handleSort('customer_name')}
+                                    >
+                                        Customer Info
+                                        {sortBy === 'customer_name' ? (
+                                            sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                        ) : (
+                                            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                                         )}
+                                    </div>
+                                )}
 
-                                        {visibleColumns.includes('balance') && (
-                                            <div className="text-right">
-                                                <p className="text-sm font-medium text-text-main">{formatIDR(Number(contract.noutstanding))}</p>
-                                                {Number(contract.narrears) > 0 && (
-                                                    <p className="text-[10px] text-destructive font-medium">+{formatIDR(Number(contract.narrears))} Arrears</p>
+                                {visibleColumns.includes('balance') && (
+                                    <div
+                                        className="flex items-center justify-end gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                        onClick={() => handleSort('outstanding')}
+                                    >
+                                        Balance
+                                        {sortBy === 'outstanding' ? (
+                                            sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                        ) : (
+                                            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        )}
+                                    </div>
+                                )}
+
+                                {visibleColumns.includes('handler') && (
+                                    <div>Handler</div>
+                                )}
+
+                                {visibleColumns.includes('status') && (
+                                    <div className="text-center">Status</div>
+                                )}
+
+                                {visibleColumns.includes('loan_amount') && (
+                                    <div
+                                        className="flex items-center justify-end gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                        onClick={() => handleSort('loan_amount')}
+                                    >
+                                        Loan Amount
+                                        {sortBy === 'loan_amount' ? (
+                                            sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                        ) : (
+                                            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        )}
+                                    </div>
+                                )}
+
+                                {visibleColumns.includes('tenor') && (
+                                    <div className="text-center">Tenor</div>
+                                )}
+
+                                {visibleColumns.includes('va_account') && (
+                                    <div>VA Account</div>
+                                )}
+
+                                {visibleColumns.includes('area') && (
+                                    <div>Area</div>
+                                )}
+
+                                {visibleColumns.includes('due_date') && (
+                                    <div
+                                        className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                        onClick={() => handleSort('due_date')}
+                                    >
+                                        Due Date
+                                        {sortBy === 'due_date' ? (
+                                            sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                        ) : (
+                                            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        )}
+                                    </div>
+                                )}
+
+                                {visibleColumns.includes('disbursement_date') && (
+                                    <div>Disburse Date</div>
+                                )}
+
+                                <div className="text-center">Action</div>
+                            </div>
+
+                            {/* Table Body */}
+                            {(isLoading || !mounted) ? (
+                                <div className="h-96 flex flex-col items-center justify-center gap-4">
+                                    <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                                    <p className="text-sm font-medium text-text-muted animate-pulse">Syncing Database...</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-border-subtle bg-card">
+                                    {filteredContracts.map((contract, i) => {
+                                        return (
+                                            <div
+                                                key={contract.nid}
+                                                onClick={() => openContractDetail(contract.nid)}
+                                                style={{ gridTemplateColumns }}
+                                                className="grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative cursor-pointer hover:bg-bg-card-hover"
+                                            >
+                                                <div className="flex items-center z-10">
+                                                    <span className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</span>
+                                                </div>
+
+                                                {visibleColumns.includes('contract_no') && (
+                                                    <div className="font-mono text-xs text-text-muted group-hover:text-primary transition-colors font-medium">
+                                                        {contract.ccontract_no}
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('customer_info') && (
+                                                    <div>
+                                                        <p className="font-semibold text-text-main text-sm">{contract.customer_name || contract.cname || "Unknown Customer"}</p>
+                                                        <p className="text-[11px] text-text-muted mt-0.5">Due: {contract.darea_date ? new Date(contract.darea_date).toLocaleDateString() : 'N/A'}</p>
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('balance') && (
+                                                    <div className="text-right">
+                                                        <p className="text-sm font-medium text-text-main">{formatIDR(Number(contract.noutstanding))}</p>
+                                                        {Number(contract.narrears) > 0 && (
+                                                            <p className="text-[10px] text-destructive font-medium">+{formatIDR(Number(contract.narrears))} Arrears</p>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('handler') && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-text-muted">{contract.chandler || "Unassigned"}</span>
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('status') && (
+                                                    <div className="flex justify-center">
+                                                        <Badge
+                                                            variant={Number(contract.narrears) > 0 ? "danger" : "success"}
+                                                            glow={Number(contract.narrears) > 0}
+                                                            className="min-w-[90px] justify-center"
+                                                        >
+                                                            {Number(contract.narrears) > 0 ? "Overdue" : "On Track"}
+                                                        </Badge>
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('loan_amount') && (
+                                                    <div className="text-right text-xs font-mono text-text-main">
+                                                        {formatIDR(Number(contract.nloan_amount || 0))}
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('tenor') && (
+                                                    <div className="text-center text-xs text-text-muted">
+                                                        {contract.ntenor || '-'}
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('va_account') && (
+                                                    <div className="font-mono text-xs text-text-muted">
+                                                        {contract.cva_account || '-'}
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('area') && (
+                                                    <div className="text-xs text-text-muted truncate">
+                                                        {contract.carea || contract.caddress_ktp || '-'}
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('due_date') && (
+                                                    <div className="text-xs text-text-muted">
+                                                        {contract.darea_date ? new Date(contract.darea_date).getDate() : '-'}
+                                                    </div>
+                                                )}
+
+                                                {visibleColumns.includes('disbursement_date') && (
+                                                    <div className="text-xs text-text-muted">
+                                                        {contract.ddisbursement || '-'}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-center gap-1">
+                                                    <button
+                                                        className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-primary transition-colors"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openEditModal(contract);
+                                                        }}
+                                                        title="Edit Contract"
+                                                    >
+                                                        <Pencil className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        className="p-1.5 rounded-md hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleSingleDelete(contract.nid);
+                                                        }}
+                                                        title="Delete Contract"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {filteredContracts.length === 0 && (
+                                        <div className="p-16 flex flex-col items-center justify-center text-center">
+                                            <div className="h-16 w-16 mb-4 rounded-2xl bg-bg-app flex items-center justify-center">
+                                                {searchQuery ? (
+                                                    <Search className="h-8 w-8 text-text-muted/50" />
+                                                ) : (
+                                                    <LayoutList className="h-8 w-8 text-text-muted/50" />
                                                 )}
                                             </div>
-                                        )}
 
-                                        {visibleColumns.includes('handler') && (
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-text-muted">{contract.chandler || "Unassigned"}</span>
-                                            </div>
-                                        )}
-
-                                        {visibleColumns.includes('status') && (
-                                            <div className="flex justify-center">
-                                                <Badge
-                                                    variant={Number(contract.narrears) > 0 ? "danger" : "success"}
-                                                    glow={Number(contract.narrears) > 0}
-                                                    className="min-w-[90px] justify-center"
-                                                >
-                                                    {Number(contract.narrears) > 0 ? "Overdue" : "On Track"}
-                                                </Badge>
-                                            </div>
-                                        )}
-
-                                        {visibleColumns.includes('loan_amount') && (
-                                            <div className="text-right text-xs font-mono text-text-main">
-                                                {formatIDR(Number(contract.nloan_amount || 0))}
-                                            </div>
-                                        )}
-
-                                        {visibleColumns.includes('tenor') && (
-                                            <div className="text-center text-xs text-text-muted">
-                                                {contract.ntenor || '-'}
-                                            </div>
-                                        )}
-
-                                        {visibleColumns.includes('va_account') && (
-                                            <div className="font-mono text-xs text-text-muted">
-                                                {contract.cva_account || '-'}
-                                            </div>
-                                        )}
-
-                                        {visibleColumns.includes('area') && (
-                                            <div className="text-xs text-text-muted truncate">
-                                                {contract.carea || contract.caddress_ktp || '-'}
-                                            </div>
-                                        )}
-
-                                        {visibleColumns.includes('due_date') && (
-                                            <div className="text-xs text-text-muted">
-                                                {contract.darea_date ? new Date(contract.darea_date).getDate() : '-'}
-                                            </div>
-                                        )}
-
-                                        {visibleColumns.includes('disbursement_date') && (
-                                            <div className="text-xs text-text-muted">
-                                                {contract.ddisbursement || '-'}
-                                            </div>
-                                        )}
-
-                                        <div className="flex justify-center gap-1">
-                                            <button
-                                                className="p-1.5 rounded-md hover:bg-bg-app text-text-muted hover:text-primary transition-colors"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    openEditModal(contract);
-                                                }}
-                                                title="Edit Contract"
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                className="p-1.5 rounded-md hover:bg-red-500/10 text-text-muted hover:text-red-500 transition-colors"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleSingleDelete(contract.nid);
-                                                }}
-                                                title="Delete Contract"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                            {searchQuery ? (
+                                                <>
+                                                    <h3 className="text-lg font-semibold text-text-main">No matches found</h3>
+                                                    <p className="text-sm text-text-muted mt-1 max-w-xs mx-auto">
+                                                        No contracts matching <span className="font-mono text-xs bg-bg-app px-1.5 py-0.5 rounded border border-border-subtle">"{searchQuery}"</span>
+                                                    </p>
+                                                    <button
+                                                        onClick={() => setSearchQuery("")}
+                                                        className="mt-6 px-4 py-2 rounded-lg bg-bg-app border border-border-subtle text-sm font-medium text-text-main hover:bg-bg-card-hover transition-all"
+                                                    >
+                                                        Clear Search
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <h3 className="text-lg font-semibold text-text-main">No contracts yet</h3>
+                                                    <p className="text-sm text-text-muted mt-1 max-w-sm mx-auto">
+                                                        Your database is empty. Contracts will appear here once they are created or synchronized.
+                                                    </p>
+                                                    <button
+                                                        onClick={openCreateModal}
+                                                        className="mt-6 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2"
+                                                    >
+                                                        <Plus className="h-4 w-4" />
+                                                        Create First Contract
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
-                                    </div>
-                                );
-                            })}
-
-                            {filteredContracts.length === 0 && (
-                                <div className="p-16 flex flex-col items-center justify-center text-center">
-                                    <div className="h-16 w-16 mb-4 rounded-2xl bg-bg-app flex items-center justify-center">
-                                        {searchQuery ? (
-                                            <Search className="h-8 w-8 text-text-muted/50" />
-                                        ) : (
-                                            <LayoutList className="h-8 w-8 text-text-muted/50" />
-                                        )}
-                                    </div>
-
-                                    {searchQuery ? (
-                                        <>
-                                            <h3 className="text-lg font-semibold text-text-main">No matches found</h3>
-                                            <p className="text-sm text-text-muted mt-1 max-w-xs mx-auto">
-                                                No contracts matching <span className="font-mono text-xs bg-bg-app px-1.5 py-0.5 rounded border border-border-subtle">"{searchQuery}"</span>
-                                            </p>
-                                            <button
-                                                onClick={() => setSearchQuery("")}
-                                                className="mt-6 px-4 py-2 rounded-lg bg-bg-app border border-border-subtle text-sm font-medium text-text-main hover:bg-bg-card-hover transition-all"
-                                            >
-                                                Clear Search
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <h3 className="text-lg font-semibold text-text-main">No contracts yet</h3>
-                                            <p className="text-sm text-text-muted mt-1 max-w-sm mx-auto">
-                                                Your database is empty. Contracts will appear here once they are created or synchronized.
-                                            </p>
-                                            <button
-                                                onClick={openCreateModal}
-                                                className="mt-6 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                                Create First Contract
-                                            </button>
-                                        </>
                                     )}
                                 </div>
                             )}
+
                         </div>
-                    )}
+                    </div>
 
                     {/* Pagination Footer */}
                     <div className="flex items-center justify-between px-6 py-3 border-t border-border-subtle bg-bg-app/30 backdrop-blur-sm">

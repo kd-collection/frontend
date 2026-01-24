@@ -1,13 +1,25 @@
 "use client";
 
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
-export default function TopBar() {
+interface TopBarProps {
+    onMenuClick: () => void;
+}
+
+export default function TopBar({ onMenuClick }: TopBarProps) {
     return (
-        <header className="sticky top-0 z-40 w-full bg-glass-bg border-b border-border-subtle backdrop-blur-md h-16 flex items-center justify-between px-8 transition-colors">
+        <header className="sticky top-0 z-40 w-full bg-glass-bg border-b border-border-subtle backdrop-blur-md h-16 flex items-center justify-between px-4 lg:px-8 transition-colors gap-4">
+            {/* Mobile Menu Toggle */}
+            <button
+                onClick={onMenuClick}
+                className="lg:hidden p-2 -ml-2 rounded-lg text-text-muted hover:bg-bg-app transition-colors"
+            >
+                <Menu className="h-5 w-5" />
+            </button>
+
             {/* Search */}
-            <div className="flex-1 max-w-md">
+            <div className="flex-1 max-w-md hidden md:block">
                 <div className="relative group">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted group-focus-within:text-primary transition-colors" />
                     <input

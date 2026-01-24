@@ -63,12 +63,13 @@ export default function Dashboard() {
           <h1 className="text-2xl font-bold text-text-main tracking-tight">Executive Dashboard</h1>
           <p className="text-sm text-text-muted mt-0.5 font-medium">Real-time financial overview & risk analysis.</p>
         </div>
-        <div className="flex gap-2.5">
-          <button className="px-4 py-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main hover:bg-bg-card-hover transition-colors text-sm font-medium shadow-sm flex items-center gap-2">
+        <div className="flex gap-2.5 w-full md:w-auto">
+          <button className="flex-1 md:flex-none justify-center px-4 py-2 rounded-lg bg-card border border-border-subtle text-text-muted hover:text-text-main hover:bg-bg-card-hover transition-colors text-sm font-medium shadow-sm flex items-center gap-2">
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Export</span>
+            <span className="sm:hidden">Export</span>
           </button>
-          <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
+          <button className="flex-1 md:flex-none justify-center px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Report
           </button>
