@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import StatsCard from "@/components/ui/StatsCard";
 import OverviewChart from "@/components/dashboard/OverviewChart";
 import { BadgeDollarSign, Users, TrendingUp, AlertTriangle, ArrowRight, Activity, Download, LayoutList, CalendarClock } from "lucide-react";
@@ -8,6 +10,8 @@ import Link from "next/link";
 import { cn, formatIDR, formatDate } from "@/lib/utils";
 import { useContractStats } from "@/hooks/useContracts";
 import Badge from "@/components/ui/Badge";
+import ContractDetailSheet from "@/components/ui/ContractDetailSheet";
+import { Contract } from "@/lib/api";
 
 const container = {
   hidden: { opacity: 0 },
@@ -25,13 +29,21 @@ const item = {
 };
 
 export default function Dashboard() {
+  const router = useRouter();
   const { data: stats, isLoading } = useContractStats();
+  const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  const openDetail = (contract: Contract) => {
+    setSelectedContract(contract);
+    setIsDetailOpen(true);
+  };
 
   if (isLoading || !stats) {
     return (
       <div className="flex h-[80vh] w-full items-center justify-center flex-col gap-4">
         <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <p className="text-sm font-medium text-text-muted animate-pulse">Loading Dashboard Dashboard...</p>
+        <p className="text-sm font-medium text-text-muted animate-pulse">Loading Dashboard...</p>
       </div>
     )
   }
@@ -161,17 +173,14 @@ export default function Dashboard() {
                 <div className="text-center py-8 text-text-muted text-sm">No high priority contracts found.</div>
               ) : (
                 highPriority.map((contract) => (
-                  <div key={contract.nid} className="group flex items-center justify-between p-3 rounded-lg bg-bg-app/50 border border-border-subtle hover:border-border-strong hover:bg-bg-card-hover transition-all">
+                  <div
+                    key={contract.nid}
+                    onClick={() => openDetail(contract)}
+                    className="group flex items-center justify-between p-3 rounded-lg bg-bg-app/50 border border-border-subtle hover:border-border-strong hover:bg-bg-card-hover transition-all cursor-pointer"
+                  >
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex flex-col items-center justify-center border border-rose-500/20 shadow-sm">
-                        <span className="text-xs font-bold">
-                          {(() => {
-                            const due = new Date(contract.darea_date || new Date());
-                            const days = Math.floor((new Date().getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
-                            return Math.max(0, days);
-                          })()}
-                        </span>
-                        <span className="text-[8px] uppercase font-bold opacity-70">Days</span>
+                        <AlertTriangle className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors">{contract.customer_name || contract.cname}</p>
@@ -236,6 +245,13 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      <ContractDetailSheet
+        contract={selectedContract}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        onEdit={() => router.push('/contracts')}
+      />
     </motion.div>
   );
 }
