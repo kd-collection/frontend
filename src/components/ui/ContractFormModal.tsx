@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Loader2, Save, PlusCircle } from "lucide-react";
 import { Contract } from "@/lib/api";
 import { useCreateContract, useUpdateContract } from "@/hooks/useContracts";
+import { useCustomers } from "@/hooks/useCustomers";
 import { useToast } from "@/components/ui/Toast";
 
 interface ContractFormModalProps {
@@ -40,6 +41,9 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [mounted, setMounted] = useState(false);
     const { toast } = useToast();
+
+    // Fetch Customers for Dropdown
+    const { data: customersData } = useCustomers({ limit: 100, sortBy: 'cname', sortOrder: 'ASC' });
 
     const { mutate: createContract, isPending: isCreating } = useCreateContract();
     const { mutate: updateContract, isPending: isUpdating } = useUpdateContract();
@@ -201,24 +205,30 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
                                     />
                                 </div>
 
-                                {/* Customer ID */}
+                                {/* Customer Selection */}
                                 <div>
                                     <label className="block text-sm font-medium text-text-muted mb-1.5">
-                                        Customer ID
+                                        Customer <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        pattern="[0-9]*"
+                                    <select
                                         name="ncustomer_id"
                                         value={formData.ncustomer_id || ""}
                                         onChange={(e) => {
-                                            const val = e.target.value.replace(/\D/g, '');
-                                            setFormData(prev => ({ ...prev, ncustomer_id: val ? Number(val) : 0 }));
+                                            const val = Number(e.target.value);
+                                            setFormData(prev => ({ ...prev, ncustomer_id: val }));
                                         }}
-                                        placeholder="Enter customer ID"
-                                        className="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-subtle text-text-main placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-                                    />
+                                        className="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-subtle text-text-main focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all appearance-none"
+                                    >
+                                        <option value="0">Select Customer</option>
+                                        {customersData?.data?.map((customer) => (
+                                            <option key={customer.nid} value={customer.nid}>
+                                                {customer.cname} - {customer.cnik}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-text-muted mt-1">
+                                        Showing top 100 customers.
+                                    </p>
                                 </div>
 
                                 {/* Loan Amount & Outstanding */}
