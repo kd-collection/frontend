@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LayoutDashboard, Users, FileText, BarChart3, Settings, ShieldCheck, ChevronRight, Upload } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, ShieldCheck, Upload, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,6 @@ const menuItems = [
     { icon: FileText, label: "Contracts", href: "/contracts" },
     { icon: Users, label: "Customers", href: "/customers" },
     { icon: Upload, label: "Import", href: "/import" },
-    { icon: BarChart3, label: "Analytics", href: "/analytics" },
     { icon: Settings, label: "Settings", href: "/settings" },
 ];
 
@@ -79,21 +78,10 @@ export default function Sidebar() {
 
             {/* User / Footer */}
             <div className="p-4 border-t border-border-subtle mx-4 mb-4">
-                <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-bg-card-hover transition-colors cursor-pointer group">
-                    <div className="relative">
-                        <div className="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                            AD
-                        </div>
-                        <div className="absolute bottom-0 right-0 h-2.5 w-2.5 bg-blue-500 border-2 border-card rounded-full" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-text-main truncate">Admin User</p>
-                        <p className="text-[10px] text-text-muted uppercase tracking-wider font-medium truncate">Online</p>
-                    </div>
-
-                    <ChevronRight className="h-4 w-4 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
+                <button className="flex items-center gap-3 w-full p-2.5 rounded-lg text-text-muted hover:text-destructive hover:bg-destructive/10 transition-all group">
+                    <LogOut className="h-4 w-4" />
+                    <span className="text-sm font-medium">Sign Out</span>
+                </button>
             </div>
         </aside>
     );
