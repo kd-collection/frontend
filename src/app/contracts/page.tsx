@@ -314,7 +314,17 @@ export default function ContractsPage() {
                         )}
 
                         {visibleColumns.includes('customer_info') && (
-                            <div>Customer Info</div>
+                            <div
+                                className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                                onClick={() => handleSort('customer_name')}
+                            >
+                                Customer Info
+                                {sortBy === 'customer_name' ? (
+                                    sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                                ) : (
+                                    <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                            </div>
                         )}
 
                         {visibleColumns.includes('balance') && (

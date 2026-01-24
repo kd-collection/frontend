@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Search, Plus, LayoutList, MoreHorizontal, Pencil, Trash2, RefreshCcw, User } from "lucide-react";
+import { Search, Plus, RefreshCcw, User, ChevronUp, ChevronDown, ArrowUpDown, Pencil, Trash2, Download } from "lucide-react";
 import { cn, formatPhoneNumber } from "@/lib/utils";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -27,6 +27,10 @@ export default function CustomersPage() {
     const [searchQuery, setSearchQuery] = useState(initialSearch);
     const debouncedSearch = useDebounce(searchQuery, 500);
 
+    // Sorting State
+    const [sortBy, setSortBy] = useState(searchParams.get("sortBy") || "created_at");
+    const [sortOrder, setSortOrder] = useState(searchParams.get("sortOrder") || "DESC");
+
     // URL Sync
     const createQueryString = useCallback(
         (params: Record<string, string | number | null>) => {
@@ -47,13 +51,15 @@ export default function CustomersPage() {
         const queryString = createQueryString({
             page: page === 1 ? null : page,
             q: debouncedSearch === "" ? null : debouncedSearch,
+            sortBy: sortBy === "created_at" ? null : sortBy,
+            sortOrder: sortOrder === "DESC" ? null : sortOrder,
         });
 
         const currentString = searchParams.toString();
         if (queryString !== currentString) {
             router.push(pathname + (queryString ? `?${queryString}` : ""), { scroll: false });
         }
-    }, [page, debouncedSearch, createQueryString, pathname, router, searchParams]);
+    }, [page, debouncedSearch, sortBy, sortOrder, createQueryString, pathname, router, searchParams]);
 
     // Reset page on search
     const [prevSearch, setPrevSearch] = useState(initialSearch);
@@ -62,11 +68,23 @@ export default function CustomersPage() {
         setPrevSearch(debouncedSearch);
     }
 
+    // Handlers
+    const handleSort = (column: string) => {
+        if (sortBy === column) {
+            setSortOrder(prev => prev === "ASC" ? "DESC" : "ASC");
+        } else {
+            setSortBy(column);
+            setSortOrder("DESC");
+        }
+    };
+
     // Data Fetching
     const { data: queryResult, isLoading, refetch, isRefetching } = useCustomers({
         page,
         limit: LIMIT,
-        search: debouncedSearch
+        search: debouncedSearch,
+        sortBy,
+        sortOrder
     });
 
     const customers = queryResult?.data || [];
@@ -101,6 +119,10 @@ export default function CustomersPage() {
                         <p className="text-sm text-text-muted mt-0.5 font-medium">Manage customer profiles and contact information.</p>
                     </div>
                     <div className="flex gap-2.5">
+                        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card text-text-muted hover:text-text-main hover:bg-bg-card-hover transition-colors border border-border-subtle text-sm font-medium shadow-sm">
+                            <Download className="h-4 w-4" />
+                            <span className="hidden sm:inline">Export</span>
+                        </button>
                         <button
                             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2"
                         >
@@ -145,12 +167,91 @@ export default function CustomersPage() {
                     style={{ gridTemplateColumns }}
                 >
                     <div>#</div>
-                    {visibleColumns.includes('name') && <div>Name</div>}
-                    {visibleColumns.includes('nik') && <div>NIK</div>}
-                    {visibleColumns.includes('phone') && <div>Phone</div>}
-                    {visibleColumns.includes('address') && <div>Address</div>}
-                    {visibleColumns.includes('company') && <div>Company</div>}
-                    {visibleColumns.includes('emergency') && <div>Emergency</div>}
+
+                    {visibleColumns.includes('name') && (
+                        <div
+                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                            onClick={() => handleSort('name')}
+                        >
+                            Name
+                            {sortBy === 'name' ? (
+                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                            ) : (
+                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                        </div>
+                    )}
+
+                    {visibleColumns.includes('nik') && (
+                        <div
+                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                            onClick={() => handleSort('nik')}
+                        >
+                            NIK
+                            {sortBy === 'nik' ? (
+                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                            ) : (
+                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                        </div>
+                    )}
+
+                    {visibleColumns.includes('phone') && (
+                        <div
+                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                            onClick={() => handleSort('phone')}
+                        >
+                            Phone
+                            {sortBy === 'phone' ? (
+                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                            ) : (
+                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                        </div>
+                    )}
+
+                    {visibleColumns.includes('address') && (
+                        <div
+                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                            onClick={() => handleSort('address')}
+                        >
+                            Address
+                            {sortBy === 'address' ? (
+                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                            ) : (
+                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                        </div>
+                    )}
+
+                    {visibleColumns.includes('company') && (
+                        <div
+                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                            onClick={() => handleSort('company')}
+                        >
+                            Company
+                            {sortBy === 'company' ? (
+                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                            ) : (
+                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                        </div>
+                    )}
+
+                    {visibleColumns.includes('emergency') && (
+                        <div
+                            className="flex items-center gap-2 cursor-pointer hover:text-text-main group transition-colors select-none"
+                            onClick={() => handleSort('emergency')}
+                        >
+                            Emergency
+                            {sortBy === 'emergency' ? (
+                                sortOrder === 'ASC' ? <ChevronUp className="h-3 w-3 text-primary" /> : <ChevronDown className="h-3 w-3 text-primary" />
+                            ) : (
+                                <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                        </div>
+                    )}
+
                     <div className="text-center">Action</div>
                 </div>
 
@@ -173,9 +274,6 @@ export default function CustomersPage() {
 
                                 {visibleColumns.includes('name') && (
                                     <div className="flex items-center gap-3">
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold border border-primary/20">
-                                            {(customer.cname || "U").charAt(0).toUpperCase()}
-                                        </div>
                                         <div>
                                             <div className="font-semibold text-text-main text-sm">{customer.cname || "Unknown"}</div>
                                             <div className="text-[10px] text-text-muted">{customer.cemail || "No email"}</div>

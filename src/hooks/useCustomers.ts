@@ -12,16 +12,18 @@ export interface UseCustomersParams {
     page?: number;
     limit?: number;
     search?: string;
+    sortBy?: string;
+    sortOrder?: string;
 }
 
 export function useCustomers(params: UseCustomersParams = {}) {
-    const { page = 1, limit = 10, search = "" } = params;
+    const { page = 1, limit = 10, search = "", sortBy = "created_at", sortOrder = "DESC" } = params;
 
     return useQuery({
-        queryKey: ["customers", page, limit, search],
+        queryKey: ["customers", page, limit, search, sortBy, sortOrder],
         queryFn: async () => {
             try {
-                const response = await api.getCustomers({ page, limit, search });
+                const response = await api.getCustomers({ page, limit, search, sortBy, sortOrder });
 
                 if (response && response.data) {
                     return response;
