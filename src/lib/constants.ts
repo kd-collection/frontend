@@ -11,3 +11,13 @@ export const CONTRACT_COLUMNS = [
     { id: "due_date", label: "Due Date", width: "120px" },
     { id: "disbursement_date", label: "Disburse Date", width: "120px" },
 ];
+
+export const CUSTOMER_COLUMNS = [
+    { id: "name", label: "Name & Email", width: "minmax(200px, 2fr)" },
+    { id: "nik", label: "NIK", width: "minmax(140px, 1.5fr)" },
+    { id: "phone", label: "Phone", width: "minmax(140px, 1.5fr)" },
+    { id: "address", label: "Address", width: "minmax(200px, 2fr)" },
+    // Potential extra columns
+    { id: "company", label: "Company", width: "minmax(150px, 1.5fr)" },
+    { id: "emergency", label: "Emergency Contact", width: "minmax(180px, 1.5fr)" },
+];

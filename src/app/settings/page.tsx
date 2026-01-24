@@ -1,18 +1,29 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { Settings as SettingsIcon, LayoutList, Eye, X, Plus } from "lucide-react";
+import { useState } from "react";
+import { Settings as SettingsIcon, LayoutList, Eye, X, Plus, FileText, Users } from "lucide-react";
 import { useContractSettings } from "@/hooks/useContractSettings";
-import { CONTRACT_COLUMNS } from "@/lib/constants";
+import { useCustomerSettings } from "@/hooks/useCustomerSettings";
+import { CONTRACT_COLUMNS, CUSTOMER_COLUMNS } from "@/lib/constants";
 import { cn, formatIDR } from "@/lib/utils";
 import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
+import { motion } from "framer-motion";
 
 export default function SettingsPage() {
-    const { visibleColumns, toggleColumn, mounted, isLimitReached } = useContractSettings();
+    const [activeTab, setActiveTab] = useState<'contracts' | 'customers'>('contracts');
 
-    // Dummy data for preview
-    const previewData = {
+    // Hooks
+    const contractSettings = useContractSettings();
+    const customerSettings = useCustomerSettings();
+
+    // Determine active settings context
+    const isContracts = activeTab === 'contracts';
+    const settings = isContracts ? contractSettings : customerSettings;
+    const allColumns = isContracts ? CONTRACT_COLUMNS : CUSTOMER_COLUMNS;
+
+    // Dummy Data
+    const contractPreview = {
         contract_no: "CTR-2026-PREVIEW",
         customer_info: { name: "John Doe", due: "2026-02-15" },
         balance: { outstanding: 5000000, arrears: 0 },
@@ -26,16 +37,27 @@ export default function SettingsPage() {
         disbursement_date: "2025-02-15"
     };
 
-    if (!mounted) return null;
+    const customerPreview = {
+        name: { name: "Sarah Smith", email: "sarah@example.com" },
+        nik: "3171234567890001",
+        phone: "+62 812-3456-7890",
+        address: "Jl. Sudirman No. 1, Jakarta",
+        company: "PT Maju Mundur",
+        emergency: "Jane Doe (Sister)"
+    };
 
+    if (!settings.mounted) return null;
+
+    const { visibleColumns, toggleColumn, isLimitReached } = settings;
+
+    // Grid definition
     const gridTemplateColumns = [
-        "60px", // Checkbox + #
-        ...CONTRACT_COLUMNS.filter(c => visibleColumns.includes(c.id)).map(c => c.width),
-        "50px" // Action
+        isContracts ? "60px" : "40px", // Checkbox/Row #
+        ...allColumns.filter(c => visibleColumns.includes(c.id)).map(c => c.width),
+        isContracts ? "50px" : "80px" // Action
     ].join(" ");
 
-    // Get available columns (not selected)
-    const availableColumns = CONTRACT_COLUMNS.filter(c => !visibleColumns.includes(c.id));
+    const availableColumns = allColumns.filter(c => !visibleColumns.includes(c.id));
 
     return (
         <div className="space-y-8 pb-32">
@@ -46,6 +68,34 @@ export default function SettingsPage() {
                 <p className="text-sm text-text-muted">Customize your workspace and table preferences.</p>
             </div>
 
+            {/* Tab Switcher */}
+            <div className="flex p-1 bg-card border border-border-subtle rounded-lg w-fit">
+                <button
+                    onClick={() => setActiveTab('contracts')}
+                    className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all",
+                        activeTab === 'contracts'
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-text-muted hover:text-text-main hover:bg-bg-app"
+                    )}
+                >
+                    <FileText className="h-4 w-4" />
+                    Contracts
+                </button>
+                <button
+                    onClick={() => setActiveTab('customers')}
+                    className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all",
+                        activeTab === 'customers'
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-text-muted hover:text-text-main hover:bg-bg-app"
+                    )}
+                >
+                    <Users className="h-4 w-4" />
+                    Customers
+                </button>
+            </div>
+
             {/* Slot Builder UI */}
             <section className="space-y-6">
                 <div className="flex items-center gap-3">
@@ -53,8 +103,8 @@ export default function SettingsPage() {
                         <LayoutList className="h-4 w-4" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold text-text-main">Table Columns</h2>
-                        <p className="text-xs text-text-muted">Choose up to 5 columns to display in your workspace.</p>
+                        <h2 className="text-lg font-semibold text-text-main">{isContracts ? 'Contract Columns' : 'Customer Columns'}</h2>
+                        <p className="text-xs text-text-muted">Choose up to 5 columns to display in the {activeTab} table.</p>
                     </div>
                 </div>
 
@@ -68,7 +118,7 @@ export default function SettingsPage() {
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                             {Array.from({ length: 5 }).map((_, i) => {
                                 const columnId = visibleColumns[i];
-                                const column = CONTRACT_COLUMNS.find(c => c.id === columnId);
+                                const column = allColumns.find(c => c.id === columnId);
                                 const isFilled = !!column;
 
                                 return (
@@ -157,17 +207,28 @@ export default function SettingsPage() {
                             style={{ gridTemplateColumns }}
                         >
                             <div className="flex items-center gap-2"><span>#</span></div>
-                            {visibleColumns.includes('contract_no') && <div>Contract No</div>}
-                            {visibleColumns.includes('customer_info') && <div>Customer Info</div>}
-                            {visibleColumns.includes('balance') && <div className="text-right">Balance</div>}
-                            {visibleColumns.includes('handler') && <div>Handler</div>}
-                            {visibleColumns.includes('status') && <div className="text-center">Status</div>}
-                            {visibleColumns.includes('loan_amount') && <div className="text-right">Loan Amount</div>}
-                            {visibleColumns.includes('tenor') && <div className="text-center">Tenor</div>}
-                            {visibleColumns.includes('va_account') && <div className="font-mono">VA Account</div>}
-                            {visibleColumns.includes('area') && <div>Area</div>}
-                            {visibleColumns.includes('due_date') && <div>Due Date</div>}
-                            {visibleColumns.includes('disbursement_date') && <div>Disburse Date</div>}
+
+                            {/* Contracts Headers */}
+                            {isContracts && visibleColumns.includes('contract_no') && <div>Contract No</div>}
+                            {isContracts && visibleColumns.includes('customer_info') && <div>Customer Info</div>}
+                            {isContracts && visibleColumns.includes('balance') && <div className="text-right">Balance</div>}
+                            {isContracts && visibleColumns.includes('handler') && <div>Handler</div>}
+                            {isContracts && visibleColumns.includes('status') && <div className="text-center">Status</div>}
+                            {isContracts && visibleColumns.includes('loan_amount') && <div className="text-right">Loan Amount</div>}
+                            {isContracts && visibleColumns.includes('tenor') && <div className="text-center">Tenor</div>}
+                            {isContracts && visibleColumns.includes('va_account') && <div className="font-mono">VA Account</div>}
+                            {isContracts && visibleColumns.includes('area') && <div>Area</div>}
+                            {isContracts && visibleColumns.includes('due_date') && <div>Due Date</div>}
+                            {isContracts && visibleColumns.includes('disbursement_date') && <div>Disburse Date</div>}
+
+                            {/* Customers Headers */}
+                            {!isContracts && visibleColumns.includes('name') && <div>Name</div>}
+                            {!isContracts && visibleColumns.includes('nik') && <div>NIK</div>}
+                            {!isContracts && visibleColumns.includes('phone') && <div>Phone</div>}
+                            {!isContracts && visibleColumns.includes('address') && <div>Address</div>}
+                            {!isContracts && visibleColumns.includes('company') && <div>Company</div>}
+                            {!isContracts && visibleColumns.includes('emergency') && <div>Emergency</div>}
+
                             <div className="text-center">Action</div>
                         </div>
 
@@ -182,74 +243,75 @@ export default function SettingsPage() {
                                     <span className="text-xs font-mono text-text-muted">1</span>
                                 </div>
 
-                                {visibleColumns.includes('contract_no') && (
-                                    <div className="font-mono text-xs text-text-muted font-medium">
-                                        {previewData.contract_no}
-                                    </div>
+                                {/* Contracts Data */}
+                                {isContracts && visibleColumns.includes('contract_no') && (
+                                    <div className="font-mono text-xs text-text-muted font-medium">{contractPreview.contract_no}</div>
                                 )}
-
-                                {visibleColumns.includes('customer_info') && (
+                                {isContracts && visibleColumns.includes('customer_info') && (
                                     <div>
-                                        <p className="font-semibold text-text-main text-sm">{previewData.customer_info.name}</p>
-                                        <p className="text-[11px] text-text-muted mt-0.5">Due: {new Date(previewData.customer_info.due).toLocaleDateString()}</p>
+                                        <p className="font-semibold text-text-main text-sm">{contractPreview.customer_info.name}</p>
+                                        <p className="text-[11px] text-text-muted mt-0.5">Due: {new Date(contractPreview.customer_info.due).toLocaleDateString()}</p>
                                     </div>
                                 )}
-
-                                {visibleColumns.includes('balance') && (
+                                {isContracts && visibleColumns.includes('balance') && (
                                     <div className="text-right">
-                                        <p className="text-sm font-medium text-text-main">{formatIDR(previewData.balance.outstanding)}</p>
+                                        <p className="text-sm font-medium text-text-main">{formatIDR(contractPreview.balance.outstanding)}</p>
                                     </div>
                                 )}
-
-                                {visibleColumns.includes('handler') && (
+                                {isContracts && visibleColumns.includes('handler') && (
                                     <div className="flex items-center gap-2">
                                         <div className="h-6 w-6 rounded-full bg-blue-50 dark:bg-blue-900/40 text-[10px] font-bold text-primary flex items-center justify-center uppercase border border-primary-subtle">
-                                            {previewData.handler.charAt(0)}
+                                            {contractPreview.handler.charAt(0)}
                                         </div>
-                                        <span className="text-xs text-text-muted">{previewData.handler}</span>
+                                        <span className="text-xs text-text-muted">{contractPreview.handler}</span>
                                     </div>
                                 )}
-
-                                {visibleColumns.includes('status') && (
+                                {isContracts && visibleColumns.includes('status') && (
                                     <div className="flex justify-center">
                                         <Badge variant="success" className="min-w-[90px] justify-center">On Track</Badge>
                                     </div>
                                 )}
-
-                                {visibleColumns.includes('loan_amount') && (
-                                    <div className="text-right text-sm text-text-main">
-                                        {formatIDR(previewData.loan_amount)}
-                                    </div>
+                                {isContracts && visibleColumns.includes('loan_amount') && (
+                                    <div className="text-right text-sm text-text-main">{formatIDR(contractPreview.loan_amount)}</div>
+                                )}
+                                {isContracts && visibleColumns.includes('tenor') && (
+                                    <div className="text-center text-sm text-text-muted">{contractPreview.tenor} Months</div>
+                                )}
+                                {isContracts && visibleColumns.includes('va_account') && (
+                                    <div className="font-mono text-xs text-text-muted">{contractPreview.va_account}</div>
+                                )}
+                                {isContracts && visibleColumns.includes('area') && (
+                                    <div className="text-sm text-text-muted">{contractPreview.area}</div>
+                                )}
+                                {isContracts && visibleColumns.includes('due_date') && (
+                                    <div className="text-sm text-text-muted">{contractPreview.due_date} of month</div>
+                                )}
+                                {isContracts && visibleColumns.includes('disbursement_date') && (
+                                    <div className="text-sm text-text-muted">{contractPreview.disbursement_date}</div>
                                 )}
 
-                                {visibleColumns.includes('tenor') && (
-                                    <div className="text-center text-sm text-text-muted">
-                                        {previewData.tenor} Months
+
+                                {/* Customers Data */}
+                                {!isContracts && visibleColumns.includes('name') && (
+                                    <div>
+                                        <p className="font-semibold text-text-main text-sm">{customerPreview.name.name}</p>
+                                        <p className="text-[11px] text-text-muted">{customerPreview.name.email}</p>
                                     </div>
                                 )}
-
-                                {visibleColumns.includes('va_account') && (
-                                    <div className="font-mono text-xs text-text-muted">
-                                        {previewData.va_account}
-                                    </div>
+                                {!isContracts && visibleColumns.includes('nik') && (
+                                    <div className="text-xs font-mono text-text-muted">{customerPreview.nik}</div>
                                 )}
-
-                                {visibleColumns.includes('area') && (
-                                    <div className="text-sm text-text-muted">
-                                        {previewData.area}
-                                    </div>
+                                {!isContracts && visibleColumns.includes('phone') && (
+                                    <div className="text-xs text-text-muted">{customerPreview.phone}</div>
                                 )}
-
-                                {visibleColumns.includes('due_date') && (
-                                    <div className="text-sm text-text-muted">
-                                        {previewData.due_date} of month
-                                    </div>
+                                {!isContracts && visibleColumns.includes('address') && (
+                                    <div className="text-xs text-text-muted truncate">{customerPreview.address}</div>
                                 )}
-
-                                {visibleColumns.includes('disbursement_date') && (
-                                    <div className="text-sm text-text-muted">
-                                        {previewData.disbursement_date}
-                                    </div>
+                                {!isContracts && visibleColumns.includes('company') && (
+                                    <div className="text-xs text-text-muted">{customerPreview.company}</div>
+                                )}
+                                {!isContracts && visibleColumns.includes('emergency') && (
+                                    <div className="text-xs text-text-muted">{customerPreview.emergency}</div>
                                 )}
 
                                 <div className="flex justify-center">

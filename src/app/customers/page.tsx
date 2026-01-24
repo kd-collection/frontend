@@ -7,6 +7,8 @@ import { cn, formatPhoneNumber } from "@/lib/utils";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useCustomerSettings } from "@/hooks/useCustomerSettings";
+import { CUSTOMER_COLUMNS } from "@/lib/constants";
 import { Customer } from "@/lib/api";
 import CustomerDetailSheet from "@/components/ui/CustomerDetailSheet";
 
@@ -70,6 +72,9 @@ export default function CustomersPage() {
     const customers = queryResult?.data || [];
     const pagination = queryResult?.pagination;
 
+    // Customer Settings (for column visibility)
+    const { visibleColumns, mounted } = useCustomerSettings();
+
     // Detail State
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -78,6 +83,13 @@ export default function CustomersPage() {
         setSelectedCustomer(customer);
         setIsDetailOpen(true);
     };
+
+    // Dynamic grid columns based on settings
+    const gridTemplateColumns = [
+        "40px", // Row number
+        ...CUSTOMER_COLUMNS.filter(c => visibleColumns.includes(c.id)).map(c => c.width),
+        "80px" // Actions
+    ].join(" ");
 
     return (
         <div className="space-y-6">
@@ -128,17 +140,22 @@ export default function CustomersPage() {
             {/* Data Table */}
             <div className="rounded-xl border border-border-subtle bg-card overflow-hidden flex flex-col shadow-sm">
                 {/* Header */}
-                <div className="grid grid-cols-[40px_2fr_1.5fr_1.5fr_2fr_80px] gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm">
+                <div
+                    className="grid gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider backdrop-blur-sm"
+                    style={{ gridTemplateColumns }}
+                >
                     <div>#</div>
-                    <div>Name</div>
-                    <div>NIK</div>
-                    <div>Phone</div>
-                    <div>Address</div>
+                    {visibleColumns.includes('name') && <div>Name</div>}
+                    {visibleColumns.includes('nik') && <div>NIK</div>}
+                    {visibleColumns.includes('phone') && <div>Phone</div>}
+                    {visibleColumns.includes('address') && <div>Address</div>}
+                    {visibleColumns.includes('company') && <div>Company</div>}
+                    {visibleColumns.includes('emergency') && <div>Emergency</div>}
                     <div className="text-center">Action</div>
                 </div>
 
                 {/* Body */}
-                {isLoading ? (
+                {(isLoading || !mounted) ? (
                     <div className="h-96 flex flex-col items-center justify-center gap-4">
                         <div className="h-8 w-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
                         <p className="text-sm font-medium text-text-muted animate-pulse">Loading Customers...</p>
@@ -149,28 +166,52 @@ export default function CustomersPage() {
                             <div
                                 key={customer.nid}
                                 onClick={() => openCustomerDetail(customer)}
-                                className="grid grid-cols-[40px_2fr_1.5fr_1.5fr_2fr_80px] gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative hover:bg-bg-card-hover cursor-pointer"
+                                style={{ gridTemplateColumns }}
+                                className="grid gap-4 px-6 py-3.5 items-center transition-all duration-200 group relative hover:bg-bg-card-hover cursor-pointer"
                             >
                                 <div className="text-xs font-mono text-text-muted">{(page - 1) * LIMIT + i + 1}</div>
 
-                                <div className="flex items-center gap-3">
-                                    <div>
-                                        <div className="font-semibold text-text-main text-sm">{customer.cname || "Unknown"}</div>
-                                        <div className="text-[10px] text-text-muted">{customer.cemail || "No email"}</div>
+                                {visibleColumns.includes('name') && (
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold border border-primary/20">
+                                            {(customer.cname || "U").charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div className="font-semibold text-text-main text-sm">{customer.cname || "Unknown"}</div>
+                                            <div className="text-[10px] text-text-muted">{customer.cemail || "No email"}</div>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
-                                <div className="text-xs font-mono text-text-muted">{customer.cnik || "-"}</div>
+                                {visibleColumns.includes('nik') && (
+                                    <div className="text-xs font-mono text-text-muted">{customer.cnik || "-"}</div>
+                                )}
 
-                                <div className="text-xs text-text-muted">{(() => {
-                                    const isValid = (p?: string | null) => p && p !== "-" && p !== "0" && p.trim() !== "";
-                                    const bestPhone = isValid(customer.cphone) ? customer.cphone : customer.cphone2;
-                                    return formatPhoneNumber(bestPhone);
-                                })()}</div>
+                                {visibleColumns.includes('phone') && (
+                                    <div className="text-xs text-text-muted">{(() => {
+                                        const isValid = (p?: string | null) => p && p !== "-" && p !== "0" && p.trim() !== "";
+                                        const bestPhone = isValid(customer.cphone) ? customer.cphone : customer.cphone2;
+                                        return formatPhoneNumber(bestPhone);
+                                    })()}</div>
+                                )}
 
-                                <div className="text-xs text-text-muted truncate" title={customer.caddress_home || ""}>
-                                    {customer.caddress_home || "-"}
-                                </div>
+                                {visibleColumns.includes('address') && (
+                                    <div className="text-xs text-text-muted truncate" title={customer.caddress_home || ""}>
+                                        {customer.caddress_home || "-"}
+                                    </div>
+                                )}
+
+                                {visibleColumns.includes('company') && (
+                                    <div className="text-xs text-text-muted truncate" title={customer.coffice_name || ""}>
+                                        {customer.coffice_name || "-"}
+                                    </div>
+                                )}
+
+                                {visibleColumns.includes('emergency') && (
+                                    <div className="text-xs text-text-muted truncate" title={customer.cec_name || ""}>
+                                        {customer.cec_name || "-"}
+                                    </div>
+                                )}
 
                                 <div className="flex justify-center gap-1">
                                     <button
