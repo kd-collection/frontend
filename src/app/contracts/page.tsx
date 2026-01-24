@@ -430,9 +430,6 @@ export default function ContractsPage() {
 
                                         {visibleColumns.includes('handler') && (
                                             <div className="flex items-center gap-2">
-                                                <div className="h-6 w-6 rounded-full bg-blue-50 dark:bg-blue-900/40 text-[10px] font-bold text-primary flex items-center justify-center uppercase border border-primary-subtle">
-                                                    {(contract.chandler || "A").charAt(0)}
-                                                </div>
                                                 <span className="text-xs text-text-muted">{contract.chandler || "Unassigned"}</span>
                                             </div>
                                         )}

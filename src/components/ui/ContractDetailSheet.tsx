@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, User, Phone, Mail, MapPin, Building, AlertCircle, Calendar, CreditCard, Wallet, Clock } from "lucide-react";
-import { formatIDR, formatDate } from "@/lib/utils";
+import { formatIDR, formatDate, formatPhoneNumber } from "@/lib/utils";
 import { Contract } from "@/lib/api";
 import Badge from "@/components/ui/Badge";
 import { DataList, DataListItem } from "@/components/ui/DataList";
@@ -86,9 +86,9 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                             <DataList title="Customer Information">
                                 <DataListItem icon={User} label="Name" value={contract.customer_name || contract.cname} />
                                 <DataListItem icon={CreditCard} label="NIK" value={contract.customer_nik} />
-                                <DataListItem icon={Phone} label="Phone" value={contract.customer_phone || contract.customer_phone2} />
+                                <DataListItem icon={Phone} label="Phone" value={formatPhoneNumber(contract.customer_phone || contract.customer_phone2)} />
                                 {contract.customer_phone && contract.customer_phone2 && (
-                                    <DataListItem icon={Phone} label="Phone 2" value={contract.customer_phone2} />
+                                    <DataListItem icon={Phone} label="Phone 2" value={formatPhoneNumber(contract.customer_phone2)} />
                                 )}
                                 <DataListItem icon={Mail} label="Email" value={contract.customer_email} />
                             </DataList>
@@ -111,7 +111,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                             {contract.cec_name && (
                                 <DataList title="Emergency Contact">
                                     <DataListItem icon={AlertCircle} label="Name" value={contract.cec_name} />
-                                    <DataListItem icon={Phone} label="Phone" value={contract.cec_phone} />
+                                    <DataListItem icon={Phone} label="Phone" value={formatPhoneNumber(contract.cec_phone)} />
                                     <DataListItem icon={MapPin} label="Address" value={contract.cec_address} />
                                 </DataList>
                             )}

@@ -111,8 +111,20 @@ class ApiClient {
     }
 
     // Customers
-    async getCustomers() {
-        return this.request<Customer[]>('/customers');
+    async getCustomers(params: { page?: number; limit?: number; search?: string } = {}) {
+        const query = new URLSearchParams();
+        if (params.page) query.append('page', params.page.toString());
+        if (params.limit) query.append('limit', params.limit.toString());
+        if (params.search) query.append('search', params.search);
+
+        const response = await this.request<Customer[]>(`/customers?${query.toString()}`);
+
+        const fullResponse = response as any;
+
+        return {
+            data: response.data || [],
+            pagination: fullResponse.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
+        };
     }
 
     async getCustomerById(id: number) {
@@ -162,10 +174,19 @@ export interface ContractStats {
 }
 
 export interface Customer {
-    id: number;
-    name: string;
-    email?: string;
-    phone?: string;
+    nid: number;
+    cnik: string;
+    cname: string;
+    cemail?: string;
+    cphone?: string;
+    cphone2?: string;
+    caddress_home?: string;
+    caddress_ktp?: string;
+    coffice_name?: string;
+    coffice_address?: string;
+    cec_name?: string;
+    cec_phone?: string;
+    cec_address?: string;
 }
 
 // Export singleton instance
