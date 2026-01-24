@@ -8,8 +8,9 @@ import Badge from "@/components/ui/Badge";
 import Breadcrumbs from "@/components/ui/Breadcrumbs";
 import ContractDetailSheet from "@/components/ui/ContractDetailSheet";
 import ContractFormModal from "@/components/ui/ContractFormModal";
+import PaymentPlanModal from "@/components/ui/PaymentPlanModal";
 import ConfirmModal from "@/components/ui/ConfirmModal";
-import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown, ChevronUp, Trash2, Loader2, X, Pencil } from "lucide-react";
+import { Search, Filter, MoreHorizontal, ArrowUpDown, Download, CheckSquare, Square, RefreshCcw, Plus, LayoutList, ChevronDown, ChevronUp, Trash2, Loader2, X, Pencil, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContractSettings } from "@/hooks/useContractSettings";
 import { useContracts, useDeleteContract } from "@/hooks/useContracts";
@@ -139,6 +140,20 @@ export default function ContractsPage() {
     const closeFormModal = () => {
         setIsFormOpen(false);
         setEditingContract(null);
+    };
+
+    // Payment Plan Modal State
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [paymentModalTarget, setPaymentModalTarget] = useState<Contract | null>(null);
+
+    const openPaymentModal = (contract: Contract) => {
+        setPaymentModalTarget(contract);
+        setIsPaymentModalOpen(true);
+    };
+
+    const closePaymentModal = () => {
+        setIsPaymentModalOpen(false);
+        setPaymentModalTarget(null);
     };
 
     // Delete Confirmation Modal State
@@ -499,6 +514,16 @@ export default function ContractsPage() {
                                                         className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-bg-app text-text-muted hover:text-primary transition-all active:scale-95"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            openPaymentModal(contract);
+                                                        }}
+                                                        title="Payment Schedule"
+                                                    >
+                                                        <Calendar className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-bg-app text-text-muted hover:text-primary transition-all active:scale-95"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
                                                             openEditModal(contract);
                                                         }}
                                                         title="Edit Contract"
@@ -609,6 +634,13 @@ export default function ContractsPage() {
                 isOpen={isFormOpen}
                 onClose={closeFormModal}
                 contract={editingContract}
+            />
+
+            {/* Payment Schedule Modal */}
+            <PaymentPlanModal
+                isOpen={isPaymentModalOpen}
+                onClose={closePaymentModal}
+                contract={paymentModalTarget}
             />
 
             {/* Delete Confirmation Modal */}

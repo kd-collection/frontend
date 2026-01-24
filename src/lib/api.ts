@@ -110,6 +110,18 @@ class ApiClient {
         });
     }
 
+    // Payment Schedule
+    async getPaymentSchedule(contractId: number) {
+        return this.request<PaymentScheduleItem[]>(`/contracts/${contractId}/schedule`);
+    }
+
+    async savePaymentSchedule(contractId: number, items: Partial<PaymentScheduleItem>[]) {
+        return this.request<{ success: boolean; data: any[] }>(`/contracts/${contractId}/schedule`, {
+            method: 'POST',
+            body: JSON.stringify({ items }),
+        });
+    }
+
     // Customers
     async getCustomers(params: { page?: number; limit?: number; search?: string; sortBy?: string; sortOrder?: string } = {}) {
         const query = new URLSearchParams();
@@ -216,6 +228,15 @@ export interface Customer {
     cec_name?: string;
     cec_phone?: string;
     cec_address?: string;
+}
+
+export interface PaymentScheduleItem {
+    nid?: number;
+    ncontract_id?: number;
+    ddue_date: string;
+    namount: number | string;
+    cdescription?: string;
+    cstatus?: 'UNPAID' | 'PAID' | 'PARTIAL';
 }
 
 // Export singleton instance
