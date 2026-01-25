@@ -81,12 +81,9 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
         }
 
         const items: Partial<PaymentScheduleItem>[] = [];
-        const principal = totalDebt - dpAmount;
-        const monthly = Math.floor(principal / tenor); // Simple floor, last month adjust
-        let remainder = principal - (monthly * tenor);
-
-        // Add DP
         let currentDate = new Date(startDate);
+
+        // 1. Add DP
         if (dpAmount > 0) {
             items.push({
                 ddue_date: startDate,
@@ -94,23 +91,28 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
                 cdescription: "Down Payment (DP)",
                 cstatus: 'UNPAID'
             });
-            // First installment usually next month?
+            // Move to next month for next payment
             currentDate.setMonth(currentDate.getMonth() + 1);
         }
 
-        // Add Installments
-        for (let i = 1; i <= tenor; i++) {
-            let amount = monthly;
-            if (i === tenor) amount += remainder; // Add remainder to last
+        // 2. Add Installments
+        const principal = totalDebt - dpAmount;
+        if (tenor > 0) {
+            const monthly = Math.floor(principal / tenor);
+            let remainder = principal - (monthly * tenor);
 
-            items.push({
-                ddue_date: currentDate.toISOString().split('T')[0],
-                namount: amount,
-                cdescription: `Installment ${i}/${tenor}`,
-                cstatus: 'UNPAID'
-            });
+            for (let i = 1; i <= tenor; i++) {
+                let amount = monthly;
+                if (i === tenor) amount += remainder;
 
-            currentDate.setMonth(currentDate.getMonth() + 1);
+                items.push({
+                    ddue_date: currentDate.toISOString().split('T')[0],
+                    namount: amount,
+                    cdescription: `Installment ${i}/${tenor}`,
+                    cstatus: 'UNPAID'
+                });
+                currentDate.setMonth(currentDate.getMonth() + 1);
+            }
         }
 
         setScheduleItems(items);
@@ -130,9 +132,23 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
     };
 
     const handleAddItem = () => {
+        // Auto-calculate remaining amount
+        const currentTotal = scheduleItems.reduce((acc, curr) => acc + Number(curr.namount || 0), 0);
+        const remaining = Math.max(0, totalDebt - currentTotal);
+
+        // Auto-predict date (1 month after last item, or today)
+        let nextDate = new Date();
+        if (scheduleItems.length > 0) {
+            const lastDate = new Date(scheduleItems[scheduleItems.length - 1].ddue_date!);
+            if (!isNaN(lastDate.getTime())) {
+                nextDate = new Date(lastDate);
+                nextDate.setMonth(nextDate.getMonth() + 1);
+            }
+        }
+
         setScheduleItems([...scheduleItems, {
-            ddue_date: new Date().toISOString().split('T')[0],
-            namount: 0,
+            ddue_date: nextDate.toISOString().split('T')[0],
+            namount: remaining,
             cdescription: 'New Payment',
             cstatus: 'UNPAID'
         }]);
@@ -142,7 +158,7 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
     const formatRp = (val: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
 
     const totalScheduled = scheduleItems.reduce((acc, curr) => acc + Number(curr.namount || 0), 0);
-    const isTotalMatch = Math.abs(totalScheduled - totalDebt) < 1000; // Tolerance 1000 perak
+    const isTotalMatch = Math.abs(totalScheduled - totalDebt) < 1; // Strict match (was 1000)
 
     if (!mounted || !isOpen || !contract) return null;
 
@@ -312,19 +328,34 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
                                     </div>
 
                                     {/* Summary Footer */}
-                                    <div className="p-4 border-t border-border-subtle bg-bg-surface flex items-center justify-between">
-                                        <div className="text-xs">
-                                            Total Scheduled: <span className={isTotalMatch ? "text-green-500 font-bold" : "text-red-500 font-bold"}>{formatRp(totalScheduled)}</span>
+                                    <div className="p-4 border-t border-border-subtle bg-bg-surface flex items-center justify-between gap-4">
+                                        <div className="flex flex-col">
+                                            <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Total Scheduled</div>
+                                            <div className="flex items-baseline gap-2">
+                                                <span className={`text-lg font-bold font-mono ${isTotalMatch ? "text-green-600 dark:text-green-400" : (totalScheduled > totalDebt ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400")}`}>
+                                                    {formatRp(totalScheduled)}
+                                                </span>
+                                            </div>
                                             {!isTotalMatch && (
-                                                <span className="ml-2 text-text-muted">(Diff: {formatRp(totalDebt - totalScheduled)})</span>
+                                                <div className="text-xs font-medium mt-1">
+                                                    {totalScheduled > totalDebt ? (
+                                                        <span className="text-blue-500 dark:text-blue-400 flex items-center gap-1">
+                                                            Surplus: +{formatRp(totalScheduled - totalDebt)}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-red-500 dark:text-red-400 flex items-center gap-1">
+                                                            Remaining: {formatRp(totalDebt - totalScheduled)}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
-                                        <div className="flex gap-3">
-                                            <button onClick={onClose} className="px-4 py-2 text-sm text-text-muted hover:text-text-main">Cancel</button>
+                                        <div className="flex gap-3 shrink-0">
+                                            <button onClick={onClose} className="px-4 py-2 text-sm text-text-muted hover:text-text-main transition-colors">Cancel</button>
                                             <button
                                                 onClick={() => saveSchedule(scheduleItems)}
                                                 disabled={isSaving || scheduleItems.length === 0}
-                                                className="px-6 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50"
+                                                className="px-6 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 shadow-sm transition-all active:scale-95"
                                             >
                                                 {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                                 Save Schedule
