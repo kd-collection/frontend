@@ -239,9 +239,11 @@ export default function Dashboard() {
               )}
             </div>
 
-            <button className="w-full py-2.5 mt-6 rounded-lg bg-bg-app hover:bg-bg-card-hover text-xs font-semibold text-text-muted hover:text-text-main transition-all border border-border-subtle hover:border-border-strong">
-              View All Contracts
-            </button>
+            <Link href="/contracts" className="block w-full mt-6">
+              <button className="w-full py-2.5 rounded-lg bg-bg-app hover:bg-bg-card-hover text-xs font-semibold text-text-muted hover:text-text-main transition-all border border-border-subtle hover:border-border-strong">
+                View All Contracts
+              </button>
+            </Link>
           </motion.div>
         </div>
 
