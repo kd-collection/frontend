@@ -21,7 +21,7 @@ class ApiClient {
 
     private async request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
         const url = `${this.baseUrl}${endpoint}`;
-        console.log('[DEBUG api.ts] Starting fetch to:', url);
+
         try {
             const response = await fetch(url, {
                 headers: {
@@ -30,10 +30,10 @@ class ApiClient {
                 },
                 ...options,
             });
-            console.log('[DEBUG api.ts] Fetch completed, status:', response.status);
+
 
             const data = await response.json();
-            console.log('[DEBUG api.ts] JSON parsed:', data);
+
 
             if (!response.ok) {
                 return {

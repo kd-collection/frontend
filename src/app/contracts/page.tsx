@@ -164,7 +164,7 @@ export default function ContractsPage() {
     const { visibleColumns, mounted } = useContractSettings();
 
     // Debug: Log loading state
-    console.log('[DEBUG] ContractsPage:', { isLoading, mounted, contractsLength: contracts.length, queryResult });
+
 
     const openContractDetail = async (contractId: number) => {
         const response = await api.getContractById(contractId);
