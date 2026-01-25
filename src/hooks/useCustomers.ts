@@ -31,7 +31,7 @@ export function useCustomers(params: UseCustomersParams = {}) {
 
                 throw new Error("Failed to fetch customers");
             } catch (error) {
-                console.error('[DEBUG useCustomers] ERROR in queryFn', error);
+
                 if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
                     console.warn("API Error, falling back to mock data (DEMO MODE ACTIVE)");
 

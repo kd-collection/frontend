@@ -163,7 +163,7 @@ export default function ContractsPage() {
     // Settings Hook
     const { visibleColumns, mounted } = useContractSettings();
 
-    // Debug: Log loading state
+
 
 
     const openContractDetail = async (contractId: number) => {

@@ -45,7 +45,7 @@ class ApiClient {
 
             return data;
         } catch (error) {
-            console.error('[DEBUG api.ts] Fetch ERROR:', error);
+
             return {
                 success: false,
                 message: 'Network error - please check your connection',
