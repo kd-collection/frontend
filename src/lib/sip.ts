@@ -1,4 +1,4 @@
-import { UserAgent, Registerer, Inviter, SessionState, UserAgentOptions, LogLevel } from "sip.js";
+import { UserAgent, Registerer, Inviter, SessionState, UserAgentOptions, LogLevel, RegistererState } from "sip.js";
 
 // SIP Configuration from Env
 const WEBSOCKET_URL = process.env.NEXT_PUBLIC_SIP_WS_URL || "ws://localhost:8088/ws";
@@ -25,7 +25,10 @@ class SipClient {
 
         console.log(SIP_LOG_PREFIX, "Connecting...", { server: WEBSOCKET_URL, user: USERNAME, domain: DOMAIN, password: PASSWORD ? `${PASSWORD.slice(0, 3)}***${PASSWORD.slice(-3)}` : "EMPTY" });
 
-        const uri = UserAgent.makeURI(`sip:${USERNAME}@${DOMAIN}`);
+        // Asterisk PJSIP often expects the AOR to be just the username for local registration, 
+        // or matches the endpoint name. 
+        // Trying to simplify URI to just user part, let PJSIP handle the rest.
+        const uri = UserAgent.makeURI(USERNAME);
         if (!uri) throw new Error("Failed to create URI");
 
         const options: UserAgentOptions = {
@@ -35,20 +38,24 @@ class SipClient {
             },
             authorizationUsername: USERNAME,
             authorizationPassword: PASSWORD,
-            logLevel: "error",      // Suppress sip.js internal verbose logs
-            logBuiltinEnabled: false, // Kill all built-in sip.js console spam
+            contactName: USERNAME,  // Help Asterisk identify the user
+            displayName: USERNAME,
+            logLevel: "debug",      // Enable verbose logs for debugging
+            logBuiltinEnabled: true, // Enable sip.js built-in console logs
             delegate: {
                 onConnect: () => {
                     console.log(SIP_LOG_PREFIX, "WebSocket connected");
                     this.onStatusChange?.('connected');
                     this.register();
                 },
-                onDisconnect: (error) => {
+                onDisconnect: (error: any) => {
                     console.error(SIP_LOG_PREFIX, "WebSocket disconnected", error || "");
                     this.onStatusChange?.('disconnected');
                 }
-            }
-        };
+            },
+            // Legacy option that might be needed for NAT traversal in some setups
+            hackIpInContact: true
+        } as any;
 
         this.ua = new UserAgent(options);
         await this.ua.start();
@@ -57,13 +64,20 @@ class SipClient {
     private async register() {
         if (!this.ua) return;
         this.registerer = new Registerer(this.ua);
+
+        // Setup explicit state change listener for debugging
         this.registerer.stateChange.addListener((state) => {
             console.log(SIP_LOG_PREFIX, "Register state:", state.toString());
-            if (state.toString() === 'Unregistered') {
-                console.error(SIP_LOG_PREFIX, "❌ REGISTER REJECTED by server (401 Unauthorized)");
-                console.error(SIP_LOG_PREFIX, "Credentials sent:", { username: USERNAME, domain: DOMAIN, password: PASSWORD ? `${PASSWORD.slice(0, 3)}***${PASSWORD.slice(-3)}` : "EMPTY" });
-                console.error(SIP_LOG_PREFIX, "→ Fix: Verify password on Asterisk matches .env.local NEXT_PUBLIC_SIP_PASSWORD");
+
+            if (state === RegistererState.Registered) {
+                console.log(SIP_LOG_PREFIX, "✅ Registration Successful");
             }
+
+            if (state === RegistererState.Unregistered) {
+                // Note: This can happen on init, or if registration fails/expires
+                console.warn(SIP_LOG_PREFIX, "Registration state is Unregistered. (This allows retrying)");
+            }
+
             this.onStatusChange?.(state.toString());
         });
 
