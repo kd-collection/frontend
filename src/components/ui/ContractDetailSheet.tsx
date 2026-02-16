@@ -3,11 +3,15 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, Phone, Mail, MapPin, Building, AlertCircle, Calendar, CreditCard, Wallet, Clock } from "lucide-react";
+import { X, User, Phone, Mail, MapPin, Building, AlertCircle, Calendar, CreditCard, Wallet, Clock, PhoneCall, PhoneOff } from "lucide-react";
 import { formatIDR, formatDate, formatPhoneNumber } from "@/lib/utils";
 import { Contract } from "@/lib/api";
 import Badge from "@/components/ui/Badge";
 import { DataList, DataListItem } from "@/components/ui/DataList";
+import { useTelephony } from "@/hooks/useTelephony";
+import { cn } from "@/lib/utils";
+
+import CallOverlay from "@/components/ui/CallOverlay";
 
 interface Props {
     contract: Contract | null;
@@ -18,6 +22,7 @@ interface Props {
 
 export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit }: Props) {
     const [mounted, setMounted] = useState(false);
+    const { initiateCall, hangupCall, isCalling, isHangingUp, currentCall, status: telephonyStatus } = useTelephony();
 
     // Lock body scroll when sheet is open
     useEffect(() => {
@@ -82,6 +87,16 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                 </Badge>
                             </div>
 
+                            {/* Telephony Connection Status (if active) */}
+                            {telephonyStatus?.ready_to_call && (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    <p className="text-xs font-medium text-emerald-500">Telephony Service Active</p>
+                                </div>
+                            )}
+
+                            {/* Active Call UI handled by CallOverlay */}
+
                             {/* Customer Info */}
                             <DataList title="Customer Information">
                                 <DataListItem icon={User} label="Name" value={contract.customer_name || contract.cname} />
@@ -141,20 +156,58 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                         </div>
 
                         {/* Footer Actions */}
-                        <div className="px-6 py-4 border-t border-border-subtle flex gap-3 flex-shrink-0 bg-card z-10">
-                            <button
-                                onClick={() => {
-                                    onEdit(contract);
-                                    onClose();
-                                }}
-                                className="flex-1 px-4 py-2 rounded-lg bg-bg-app border border-border-subtle text-text-main text-sm font-medium hover:bg-bg-card-hover transition-colors">
-                                Edit Contract
-                            </button>
-                            <button className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
-                                Record Payment
-                            </button>
+                        <div className="px-6 py-4 border-t border-border-subtle flex flex-col gap-3 flex-shrink-0 bg-card z-10">
+                            {/* Call Action - Prominent (Restricted to contract 99999999) */}
+                            {contract.customer_phone && !currentCall && contract.ccontract_no === "99999999" ? (
+                                <button
+                                    onClick={() => initiateCall({
+                                        destination: contract.customer_phone || "",
+                                        callerId: "9999"
+                                    })}
+                                    disabled={isCalling}
+                                    className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                >
+                                    {isCalling ? (
+                                        <>
+                                            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Connecting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Phone className="h-4 w-4" />
+                                            Call Customer ({contract.customer_phone})
+                                        </>
+                                    )}
+                                </button>
+                            ) : (
+                                <div className="w-full py-3 rounded-lg bg-gray-700/50 text-gray-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-white/5">
+                                    <Phone className="h-4 w-4" />
+                                    Call Customer (Restricted)
+                                </div>
+                            )}
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        onEdit(contract);
+                                        onClose();
+                                    }}
+                                    className="flex-1 px-4 py-2 rounded-lg bg-bg-app border border-border-subtle text-text-main text-sm font-medium hover:bg-bg-card-hover transition-colors">
+                                    Edit Contract
+                                </button>
+                                <button className="flex-1 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+                                    Record Payment
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
+
+                    {/* Full Screen Call Overlay */}
+                    <CallOverlay
+                        call={currentCall}
+                        onHangup={hangupCall}
+                        isHangingUp={isHangingUp}
+                    />
                 </>
             )}
         </AnimatePresence>,

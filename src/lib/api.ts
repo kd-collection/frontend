@@ -19,8 +19,8 @@ class ApiClient {
         this.baseUrl = baseUrl;
     }
 
-    private async request<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
-        const url = `${this.baseUrl}${endpoint}`;
+    private async request<T>(endpoint: string, options?: RequestInit, customBaseUrl?: string): Promise<ApiResponse<T>> {
+        const url = customBaseUrl ? `${customBaseUrl}${endpoint}` : `${this.baseUrl}${endpoint}`;
 
         try {
             const response = await fetch(url, {
@@ -164,6 +164,80 @@ class ApiClient {
             method: 'DELETE',
         });
     }
+
+    // Telephony
+    private get telephonyUrl() {
+        return '/api/telephony';
+    }
+
+    private get telephonyHeaders() {
+        return {
+            'x-api-key': process.env.NEXT_PUBLIC_TELEPHONY_KEY || ''
+        };
+    }
+
+    async initiateCall(destination: string, callerId?: string, options?: { webhookUrl?: string; timeout?: number }) {
+        const response = await this.request<{ message: string; call: CallSession } | any>('/call', {
+            method: 'POST',
+            headers: this.telephonyHeaders,
+            body: JSON.stringify({
+                destination,
+                callerId,
+                webhookUrl: options?.webhookUrl,
+                timeout: options?.timeout
+            }),
+        }, this.telephonyUrl) as any;
+
+        if (response && 'call' in response) {
+            return { success: true, data: response.call };
+        }
+        return response as ApiResponse<CallSession>;
+    }
+
+    async hangupCall(channelId: string) {
+        const response = await this.request<{ message: string } | any>(`/call/${channelId}`, {
+            method: 'DELETE',
+            headers: this.telephonyHeaders,
+        }, this.telephonyUrl) as any;
+
+        if (response && 'message' in response) {
+            return { success: true, message: response.message };
+        }
+        return response as ApiResponse<{ success: boolean }>;
+    }
+
+    async getCallDetail(channelId: string) {
+        const response = await this.request<CallSession | any>(`/call/${channelId}`, {
+            headers: this.telephonyHeaders
+        }, this.telephonyUrl) as any;
+
+        if (response && 'id' in response) {
+            return { success: true, data: response as CallSession };
+        }
+        return response as ApiResponse<CallSession>;
+    }
+
+    async getTelephonyStatus() {
+        const response = await this.request<TelephonyStatus | any>('/status', {
+            headers: this.telephonyHeaders
+        }, this.telephonyUrl) as any;
+
+        if (response && 'ready_to_call' in response) {
+            return { success: true, data: response as TelephonyStatus };
+        }
+        return response as ApiResponse<TelephonyStatus>;
+    }
+
+    async getActiveCalls() {
+        const response = await this.request<{ count: number; calls: CallSession[] } | any>('/calls', {
+            headers: this.telephonyHeaders
+        }, this.telephonyUrl) as any;
+
+        if (response && 'calls' in response) {
+            return { success: true, data: response.calls };
+        }
+        return { success: false, message: 'Invalid response format', data: [] };
+    }
 }
 
 // Types
@@ -237,6 +311,29 @@ export interface PaymentScheduleItem {
     namount: number | string;
     cdescription?: string;
     cstatus?: 'UNPAID' | 'PAID' | 'PARTIAL';
+}
+
+export interface CallSession {
+    id: string; // Backend uses 'id' instead of 'channelId'
+    destination: string;
+    callerId: string;
+    state: string; // Backend uses 'state' strings (e.g. 'Initiated', 'Up')
+    startedAt?: string;
+    endedAt?: string;
+    duration?: number;
+}
+
+export interface TelephonyStatus {
+    service: string;
+    ready_to_call: boolean;
+    diagnosis: string;
+    active_calls: number;
+    trunk_info?: {
+        state: string;
+        resource: string;
+        technology: string;
+    } | null;
+    all_endpoints: any[];
 }
 
 // Export singleton instance
