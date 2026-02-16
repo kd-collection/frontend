@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 const UPSTREAM_URL = process.env.TELEPHONY_SERVICE_URL || "http://localhost:4000";
 const API_KEY = process.env.NEXT_PUBLIC_TELEPHONY_KEY || "";
 
-async function handler(req: NextRequest, { params }: { params: { path: string[] } }) {
+async function handler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
     const { path } = await params;
     const pathString = path.join("/");
     const url = `${UPSTREAM_URL}/${pathString}`;
+
+    console.log("[Telephony Proxy]", req.method, url, "| API_KEY:", API_KEY ? `${API_KEY.slice(0, 4)}...${API_KEY.slice(-4)}` : "EMPTY");
 
     try {
         const body = req.method !== "GET" && req.method !== "DELETE" ? await req.json() : undefined;

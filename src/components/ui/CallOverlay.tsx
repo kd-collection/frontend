@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Phone, PhoneOff, Mic, MicOff, Volume2, User, MoreVertical } from "lucide-react";
+import { PhoneOff, Mic, MicOff, Volume2, User, MoreVertical } from "lucide-react";
 import { createPortal } from "react-dom";
 import { CallSession } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -11,12 +11,12 @@ interface CallOverlayProps {
     call: CallSession | null;
     onHangup: (channelId: string) => void;
     isHangingUp: boolean;
+    isMuted: boolean;
+    onToggleMute: () => void;
 }
 
-export default function CallOverlay({ call, onHangup, isHangingUp }: CallOverlayProps) {
+export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onToggleMute }: CallOverlayProps) {
     const [duration, setDuration] = useState(0);
-    const [isMuted, setIsMuted] = useState(false);
-    const [isSpeaker, setIsSpeaker] = useState(false);
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -100,11 +100,18 @@ export default function CallOverlay({ call, onHangup, isHangingUp }: CallOverlay
 
                     {/* Controls */}
                     <div className="w-full max-w-sm bg-[#1c2a3e] rounded-3xl p-6 shadow-xl border border-white/5">
-                        <div className="grid grid-cols-4 gap-4 mb-8">
-                            <ControlButton icon={Volume2} active={isSpeaker} onClick={() => setIsSpeaker(!isSpeaker)} />
-                            <ControlButton icon={KEYPAD_ICON} />
-                            <ControlButton icon={isMuted ? MicOff : Mic} active={isMuted} onClick={() => setIsMuted(!isMuted)} />
-                            <ControlButton icon={VIDEO_ICON} disabled />
+                        <div className="flex justify-center gap-8 mb-8">
+                            <ControlButton
+                                icon={isMuted ? MicOff : Mic}
+                                label={isMuted ? "Unmute" : "Mute"}
+                                active={isMuted}
+                                onClick={onToggleMute}
+                            />
+                            <ControlButton
+                                icon={Volume2}
+                                label="Speaker"
+                                disabled
+                            />
                         </div>
 
                         <div className="flex justify-center items-center">
@@ -124,26 +131,25 @@ export default function CallOverlay({ call, onHangup, isHangingUp }: CallOverlay
     );
 }
 
-function ControlButton({ icon: Icon, active = false, onClick, disabled = false }: any) {
+function ControlButton({ icon: Icon, label, active = false, onClick, disabled = false }: {
+    icon: React.ComponentType<any>;
+    label?: string;
+    active?: boolean;
+    onClick?: () => void;
+    disabled?: boolean;
+}) {
     return (
         <button
             onClick={onClick}
             disabled={disabled}
             className={cn(
-                "flex flex-col items-center justify-center gap-2 aspect-square rounded-2xl transition-all",
+                "flex flex-col items-center justify-center gap-2 w-16 h-16 rounded-2xl transition-all",
                 active ? "bg-white text-black" : "bg-white/5 text-white hover:bg-white/10",
                 disabled && "opacity-30 cursor-not-allowed"
             )}
         >
             <Icon className="w-5 h-5" />
+            {label && <span className="text-[10px] font-medium">{label}</span>}
         </button>
     );
 }
-
-const KEYPAD_ICON = (props: any) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /></svg> // Actually mail/video placeholder in glitch, replacing with grid
-);
-
-const VIDEO_ICON = (props: any) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 8-6 4 6 4V8Z" /><rect width="14" height="12" x="2" y="6" rx="2" ry="2" /></svg>
-);

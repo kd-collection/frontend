@@ -1,4 +1,4 @@
-import { UserAgent, Registerer, Inviter, SessionState, UserAgentOptions } from "sip.js";
+import { UserAgent, Registerer, Inviter, SessionState, UserAgentOptions, LogLevel } from "sip.js";
 
 // SIP Configuration from Env
 const WEBSOCKET_URL = process.env.NEXT_PUBLIC_SIP_WS_URL || "ws://localhost:8088/ws";
@@ -6,28 +6,24 @@ const DOMAIN = process.env.NEXT_PUBLIC_SIP_DOMAIN || "localhost";
 const USERNAME = process.env.NEXT_PUBLIC_SIP_USERNAME || "101";
 const PASSWORD = process.env.NEXT_PUBLIC_SIP_PASSWORD || "password123";
 
+const SIP_LOG_PREFIX = "[SIP]";
+
 class SipClient {
     private ua: UserAgent | null = null;
     private registerer: Registerer | null = null;
     private session: Inviter | null = null;
+    private remoteAudio: HTMLAudioElement | null = null;
+    private localStream: MediaStream | null = null;
 
     // Callbacks
     public onStatusChange: ((status: string) => void) | null = null;
     public onCallStateChange: ((state: SessionState) => void) | null = null;
 
-    private audioContext: AudioContext | null = null;
-
-    constructor() {
-        // AudioContext will be initialized on connect/call
-    }
-
     async connect() {
         if (typeof window === 'undefined') return;
-        if (!this.audioContext) {
-            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-        }
-
         if (this.ua) return;
+
+        console.log(SIP_LOG_PREFIX, "Connecting...", { server: WEBSOCKET_URL, user: USERNAME, domain: DOMAIN });
 
         const uri = UserAgent.makeURI(`sip:${USERNAME}@${DOMAIN}`);
         if (!uri) throw new Error("Failed to create URI");
@@ -39,14 +35,17 @@ class SipClient {
             },
             authorizationUsername: USERNAME,
             authorizationPassword: PASSWORD,
+            logLevel: "error",      // Suppress sip.js internal verbose logs
+            logBuiltinEnabled: false, // Kill all built-in sip.js console spam
             delegate: {
                 onConnect: () => {
+                    console.log(SIP_LOG_PREFIX, "WebSocket connected");
                     this.onStatusChange?.('connected');
                     this.register();
                 },
                 onDisconnect: (error) => {
+                    console.error(SIP_LOG_PREFIX, "WebSocket disconnected", error || "");
                     this.onStatusChange?.('disconnected');
-                    if (error) console.error("SIP Disconnected:", error);
                 }
             }
         };
@@ -59,14 +58,23 @@ class SipClient {
         if (!this.ua) return;
         this.registerer = new Registerer(this.ua);
         this.registerer.stateChange.addListener((state) => {
+            console.log(SIP_LOG_PREFIX, "Register state:", state.toString());
             this.onStatusChange?.(state.toString());
         });
-        await this.registerer.register();
+
+        try {
+            await this.registerer.register();
+        } catch (err) {
+            console.error(SIP_LOG_PREFIX, "Register failed:", err);
+        }
     }
 
-    async call(destination: string, remoteVideoElement?: HTMLMediaElement) {
+    async call(destination: string, audioElement: HTMLAudioElement) {
         if (!this.ua) await this.connect();
         if (!this.ua) throw new Error("SIP UA not initialized");
+
+        console.log(SIP_LOG_PREFIX, "Calling", destination);
+        this.remoteAudio = audioElement;
 
         const target = UserAgent.makeURI(`sip:${destination}@${DOMAIN}`);
         if (!target) throw new Error("Invalid target URI");
@@ -79,53 +87,97 @@ class SipClient {
 
         // Handle Session State Changes
         this.session.stateChange.addListener((state) => {
-            console.log("Session State:", state);
+            console.log(SIP_LOG_PREFIX, "Call state:", state);
             this.onCallStateChange?.(state);
 
+            if (state === SessionState.Established) {
+                console.log(SIP_LOG_PREFIX, "Call answered - setting up audio");
+                this.setupRemoteAudio();
+            }
+
             if (state === SessionState.Terminated) {
+                console.log(SIP_LOG_PREFIX, "Call ended");
+                this.cleanupMedia();
                 this.session = null;
             }
         });
 
-        // Handle Media
-        if (remoteVideoElement) {
-            // In sip.js v0.20+, managing media streams is often done via the SessionDescriptionHandler
-            // But simpler way is to hook into the track event if using default SDH
-            // Note: pure sip.js requires some manual track handling usually, 
-            // but let's try standard approach:
-            //  (this.session as any).delegate = {
-            //      onPeerConnection: (pc: RTCPeerConnection) => {
-            //          pc.ontrack = (event) => {
-            //              if (event.track.kind === 'audio') {
-            //                  remoteVideoElement.srcObject = event.streams[0];
-            //                  remoteVideoElement.play();
-            //              }
-            //          }
-            //      }
-            //  }
+        // Send Invite
+        return this.session.invite();
+    }
+
+    private setupRemoteAudio() {
+        if (!this.session?.sessionDescriptionHandler || !this.remoteAudio) return;
+
+        const sdh = this.session.sessionDescriptionHandler as any;
+        const pc = sdh.peerConnection as RTCPeerConnection | undefined;
+        if (!pc) {
+            console.error(SIP_LOG_PREFIX, "No PeerConnection available");
+            return;
         }
 
-        // Send Invite
-        return this.session.invite({
-            requestDelegate: {
-                onAccept: (response) => {
-                    // Handle remote stream setup here for v0.21.x if needed
-                    // Usually the default Web.SessionDescriptionHandler takes care of attaching to an element
-                    // provided in options, but simpler to attach manually.
+        const remoteStream = new MediaStream();
 
-                    if (remoteVideoElement && this.session?.sessionDescriptionHandler) {
-                        const sdh = this.session.sessionDescriptionHandler as any;
-                        const pc = sdh.peerConnection as RTCPeerConnection;
-                        const remoteStream = new MediaStream();
-                        pc.getReceivers().forEach(receiver => {
-                            if (receiver.track) remoteStream.addTrack(receiver.track);
-                        });
-                        remoteVideoElement.srcObject = remoteStream;
-                        remoteVideoElement.play().catch(console.error);
-                    }
+        // Grab any tracks already present
+        pc.getReceivers().forEach(receiver => {
+            if (receiver.track) remoteStream.addTrack(receiver.track);
+        });
+
+        // Also listen for tracks that arrive later
+        pc.ontrack = (event) => {
+            console.log(SIP_LOG_PREFIX, "Remote track received:", event.track.kind);
+            event.streams[0]?.getTracks().forEach(track => {
+                if (!remoteStream.getTrackById(track.id)) {
+                    remoteStream.addTrack(track);
                 }
+            });
+        };
+
+        this.remoteAudio.srcObject = remoteStream;
+        this.remoteAudio.play().catch(err => console.error(SIP_LOG_PREFIX, "Audio play failed:", err));
+
+        console.log(SIP_LOG_PREFIX, "Audio setup done - remote tracks:", remoteStream.getTracks().length,
+            "| local senders:", pc.getSenders().filter(s => s.track?.kind === 'audio').length);
+
+        // Store local stream reference for mute control
+        pc.getSenders().forEach(sender => {
+            if (sender.track?.kind === 'audio') {
+                if (!this.localStream) this.localStream = new MediaStream();
+                this.localStream.addTrack(sender.track);
             }
         });
+    }
+
+    private cleanupMedia() {
+        if (this.remoteAudio) {
+            this.remoteAudio.srcObject = null;
+        }
+        this.localStream = null;
+    }
+
+    setMute(muted: boolean) {
+        if (!this.session?.sessionDescriptionHandler) return;
+
+        const sdh = this.session.sessionDescriptionHandler as any;
+        const pc = sdh.peerConnection as RTCPeerConnection | undefined;
+        if (!pc) return;
+
+        pc.getSenders().forEach(sender => {
+            if (sender.track?.kind === 'audio') {
+                sender.track.enabled = !muted;
+            }
+        });
+    }
+
+    isMuted(): boolean {
+        if (!this.session?.sessionDescriptionHandler) return false;
+
+        const sdh = this.session.sessionDescriptionHandler as any;
+        const pc = sdh.peerConnection as RTCPeerConnection | undefined;
+        if (!pc) return false;
+
+        const audioSender = pc.getSenders().find(s => s.track?.kind === 'audio');
+        return audioSender ? !audioSender.track!.enabled : false;
     }
 
     async hangup() {

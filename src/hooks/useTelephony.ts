@@ -1,47 +1,75 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, CallSession } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { sipClient } from "@/lib/sip";
 import { SessionState } from "sip.js";
+
+export type SipState = "disconnected" | "connecting" | "connected" | "registered" | "failed";
 
 export function useTelephony() {
     const { toast } = useToast();
     const [currentCall, setCurrentCall] = useState<CallSession | null>(null);
-    const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+    const [isMuted, setIsMuted] = useState(false);
+    const [sipState, setSipState] = useState<SipState>("disconnected");
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+    const callStartedRef = useRef(false);
 
-    // Initialize SIP on mount
+    // Create and append audio element to DOM once
     useEffect(() => {
-        // Create a hidden audio element for remote stream
-        const audio = new Audio();
+        const audio = document.createElement('audio');
         audio.autoplay = true;
-        setAudioElement(audio);
+        audio.style.display = 'none';
+        document.body.appendChild(audio);
+        audioRef.current = audio;
+
+        setSipState("connecting");
 
         sipClient.onStatusChange = (status) => {
-            console.log("SIP Status:", status);
+            if (status === 'connected') {
+                setSipState("connected");
+            } else if (status === 'disconnected') {
+                setSipState("disconnected");
+            } else if (status === 'Registered') {
+                setSipState("registered");
+            } else if (status === 'Unregistered') {
+                setSipState("failed");
+            }
         };
 
         sipClient.onCallStateChange = (state) => {
             if (state === SessionState.Terminated) {
+                // Only show "Call ended" if call was actually established
+                if (callStartedRef.current) {
+                    toast("Call ended", "info");
+                } else {
+                    toast("Call failed — SIP registration error", "error");
+                }
                 setCurrentCall(null);
-                toast("Call ended", "info");
+                setIsMuted(false);
+                callStartedRef.current = false;
             } else if (state === SessionState.Established) {
+                callStartedRef.current = true;
                 setCurrentCall(prev => prev ? { ...prev, state: 'up' } : null);
             }
         };
 
         // Auto-connect
-        sipClient.connect().catch(console.error);
+        sipClient.connect().catch(() => {
+            setSipState("failed");
+        });
 
         return () => {
-            // cleanup if needed
+            if (audio.parentNode) {
+                audio.srcObject = null;
+                audio.parentNode.removeChild(audio);
+            }
         };
     }, []);
 
     const { data: status } = useQuery({
         queryKey: ["telephony", "status"],
         queryFn: async () => {
-            // Still check API for backend health
             const response = await api.getTelephonyStatus();
             return response.success ? response.data : null;
         },
@@ -51,27 +79,25 @@ export function useTelephony() {
     const callMutation = useMutation({
         mutationFn: async ({ destination, callerId }: { destination: string; callerId?: string }) => {
             if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-                // Demo logic ...
                 return { success: true, data: { id: 'mock', destination, callerId: 'mock', state: 'ringing' } as CallSession };
             }
 
-            // Real WebRTC Call
-            try {
-                if (!audioElement) throw new Error("Audio system not ready");
-                await sipClient.call(destination, audioElement);
-
-                // Construct a session object to satisfy UI
-                const session: CallSession = {
-                    id: `sip-${Date.now()}`,
-                    destination,
-                    callerId: callerId || "me",
-                    state: 'dialing',
-                    startedAt: new Date().toISOString()
-                };
-                return { success: true, data: session };
-            } catch (err: any) {
-                throw new Error(err.message || "SIP Call Failed");
+            if (sipState !== 'registered') {
+                throw new Error("SIP not registered — check extension credentials");
             }
+
+            if (!audioRef.current) throw new Error("Audio system not ready");
+            await sipClient.call(destination, audioRef.current);
+
+            callStartedRef.current = false;
+            const session: CallSession = {
+                id: `sip-${Date.now()}`,
+                destination,
+                callerId: callerId || "me",
+                state: 'dialing',
+                startedAt: new Date().toISOString()
+            };
+            return { success: true, data: session };
         },
         onSuccess: (data) => {
             if (data.success && data.data) {
@@ -87,30 +113,33 @@ export function useTelephony() {
     const hangupMutation = useMutation({
         mutationFn: async (channelId: string) => {
             if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') return { success: true };
-
-            try {
-                await sipClient.hangup();
-                return { success: true };
-            } catch (err: any) {
-                throw new Error(err.message || "SIP Hangup Failed");
-            }
+            await sipClient.hangup();
+            return { success: true };
         },
         onSuccess: () => {
             setCurrentCall(null);
-            // Toast handled by onCallStateChange usually, but good to have here too
+            setIsMuted(false);
         },
-        onError: (err) => {
-            // Ignore if already hungup
-            console.warn(err);
+        onError: () => {
+            // Hangup error ignored - call may already be terminated
         }
     });
 
+    const toggleMute = useCallback(() => {
+        const newMuted = !isMuted;
+        sipClient.setMute(newMuted);
+        setIsMuted(newMuted);
+    }, [isMuted]);
+
     return {
         status,
+        sipState,
         currentCall,
         initiateCall: callMutation.mutate,
         isCalling: callMutation.isPending,
         hangupCall: hangupMutation.mutate,
-        isHangingUp: hangupMutation.isPending
+        isHangingUp: hangupMutation.isPending,
+        isMuted,
+        toggleMute
     };
 }

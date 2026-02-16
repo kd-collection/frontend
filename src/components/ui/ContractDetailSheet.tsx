@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, User, Phone, Mail, MapPin, Building, AlertCircle, Calendar, CreditCard, Wallet, Clock, PhoneCall, PhoneOff } from "lucide-react";
+import { X, User, Phone, Mail, MapPin, Building, AlertCircle, Calendar, CreditCard, Wallet, Clock } from "lucide-react";
 import { formatIDR, formatDate, formatPhoneNumber } from "@/lib/utils";
 import { Contract } from "@/lib/api";
 import Badge from "@/components/ui/Badge";
 import { DataList, DataListItem } from "@/components/ui/DataList";
 import { useTelephony } from "@/hooks/useTelephony";
-import { cn } from "@/lib/utils";
-
 import CallOverlay from "@/components/ui/CallOverlay";
 
 interface Props {
@@ -22,7 +20,7 @@ interface Props {
 
 export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit }: Props) {
     const [mounted, setMounted] = useState(false);
-    const { initiateCall, hangupCall, isCalling, isHangingUp, currentCall, status: telephonyStatus } = useTelephony();
+    const { initiateCall, hangupCall, isCalling, isHangingUp, currentCall, sipState, isMuted, toggleMute } = useTelephony();
 
     // Lock body scroll when sheet is open
     useEffect(() => {
@@ -87,11 +85,26 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                 </Badge>
                             </div>
 
-                            {/* Telephony Connection Status (if active) */}
-                            {telephonyStatus?.ready_to_call && (
+                            {/* SIP Connection Status */}
+                            {sipState === 'registered' ? (
                                 <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                                    <p className="text-xs font-medium text-emerald-500">Telephony Service Active</p>
+                                    <p className="text-xs font-medium text-emerald-500">Ready to Call</p>
+                                </div>
+                            ) : sipState === 'failed' ? (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                                    <p className="text-xs font-medium text-red-400">SIP Registration Failed — Check extension credentials</p>
+                                </div>
+                            ) : sipState === 'connecting' || sipState === 'connected' ? (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                                    <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
+                                    <p className="text-xs font-medium text-yellow-500">Connecting to SIP server...</p>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-gray-500/10 border border-gray-500/20 rounded-lg">
+                                    <div className="h-2 w-2 rounded-full bg-gray-500" />
+                                    <p className="text-xs font-medium text-gray-400">SIP Disconnected</p>
                                 </div>
                             )}
 
@@ -157,20 +170,29 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
 
                         {/* Footer Actions */}
                         <div className="px-6 py-4 border-t border-border-subtle flex flex-col gap-3 flex-shrink-0 bg-card z-10">
-                            {/* Call Action - Prominent (Restricted to contract 99999999) */}
+                            {/* Call Action */}
                             {contract.customer_phone && !currentCall && contract.ccontract_no === "99999999" ? (
                                 <button
                                     onClick={() => initiateCall({
                                         destination: contract.customer_phone || "",
                                         callerId: "9999"
                                     })}
-                                    disabled={isCalling}
-                                    className="w-full py-3 rounded-lg bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                    disabled={isCalling || sipState !== 'registered'}
+                                    className={`w-full py-3 rounded-lg font-semibold shadow-lg transition-all flex items-center justify-center gap-2 ${
+                                        sipState === 'registered'
+                                            ? 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98]'
+                                            : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5 shadow-none'
+                                    }`}
                                 >
                                     {isCalling ? (
                                         <>
                                             <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                             Connecting...
+                                        </>
+                                    ) : sipState !== 'registered' ? (
+                                        <>
+                                            <Phone className="h-4 w-4" />
+                                            {sipState === 'failed' ? 'SIP Auth Failed' : sipState === 'disconnected' ? 'SIP Disconnected' : 'Connecting SIP...'}
                                         </>
                                     ) : (
                                         <>
@@ -182,7 +204,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                             ) : (
                                 <div className="w-full py-3 rounded-lg bg-gray-700/50 text-gray-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-white/5">
                                     <Phone className="h-4 w-4" />
-                                    Call Customer (Restricted)
+                                    {!contract.customer_phone ? 'No Phone Number' : 'Call Customer (Restricted)'}
                                 </div>
                             )}
 
@@ -207,6 +229,8 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                         call={currentCall}
                         onHangup={hangupCall}
                         isHangingUp={isHangingUp}
+                        isMuted={isMuted}
+                        onToggleMute={toggleMute}
                     />
                 </>
             )}
