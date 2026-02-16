@@ -23,7 +23,7 @@ class SipClient {
         if (typeof window === 'undefined') return;
         if (this.ua) return;
 
-        console.log(SIP_LOG_PREFIX, "Connecting...", { server: WEBSOCKET_URL, user: USERNAME, domain: DOMAIN });
+        console.log(SIP_LOG_PREFIX, "Connecting...", { server: WEBSOCKET_URL, user: USERNAME, domain: DOMAIN, password: PASSWORD ? `${PASSWORD.slice(0, 3)}***${PASSWORD.slice(-3)}` : "EMPTY" });
 
         const uri = UserAgent.makeURI(`sip:${USERNAME}@${DOMAIN}`);
         if (!uri) throw new Error("Failed to create URI");
@@ -59,10 +59,16 @@ class SipClient {
         this.registerer = new Registerer(this.ua);
         this.registerer.stateChange.addListener((state) => {
             console.log(SIP_LOG_PREFIX, "Register state:", state.toString());
+            if (state.toString() === 'Unregistered') {
+                console.error(SIP_LOG_PREFIX, "❌ REGISTER REJECTED by server (401 Unauthorized)");
+                console.error(SIP_LOG_PREFIX, "Credentials sent:", { username: USERNAME, domain: DOMAIN, password: PASSWORD ? `${PASSWORD.slice(0, 3)}***${PASSWORD.slice(-3)}` : "EMPTY" });
+                console.error(SIP_LOG_PREFIX, "→ Fix: Verify password on Asterisk matches .env.local NEXT_PUBLIC_SIP_PASSWORD");
+            }
             this.onStatusChange?.(state.toString());
         });
 
         try {
+            console.log(SIP_LOG_PREFIX, "Sending REGISTER to", `sip:${USERNAME}@${DOMAIN}`, "via", WEBSOCKET_URL);
             await this.registerer.register();
         } catch (err) {
             console.error(SIP_LOG_PREFIX, "Register failed:", err);
