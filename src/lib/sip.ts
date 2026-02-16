@@ -25,10 +25,7 @@ class SipClient {
 
         console.log(SIP_LOG_PREFIX, "Connecting...", { server: WEBSOCKET_URL, user: USERNAME, domain: DOMAIN, password: PASSWORD ? `${PASSWORD.slice(0, 3)}***${PASSWORD.slice(-3)}` : "EMPTY" });
 
-        // Asterisk PJSIP often expects the AOR to be just the username for local registration, 
-        // or matches the endpoint name. 
-        // Trying to simplify URI to just user part, let PJSIP handle the rest.
-        const uri = UserAgent.makeURI(USERNAME);
+        const uri = UserAgent.makeURI(`sip:${USERNAME}@${DOMAIN}`);
         if (!uri) throw new Error("Failed to create URI");
 
         const options: UserAgentOptions = {
@@ -40,8 +37,8 @@ class SipClient {
             authorizationPassword: PASSWORD,
             contactName: USERNAME,  // Help Asterisk identify the user
             displayName: USERNAME,
-            logLevel: "debug",      // Enable verbose logs for debugging
-            logBuiltinEnabled: true, // Enable sip.js built-in console logs
+            logLevel: "error",      // Suppress sip.js internal verbose logs
+            logBuiltinEnabled: false, // Kill all built-in sip.js console spam
             delegate: {
                 onConnect: () => {
                     console.log(SIP_LOG_PREFIX, "WebSocket connected");
