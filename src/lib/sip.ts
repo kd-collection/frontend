@@ -37,8 +37,8 @@ class SipClient {
             authorizationPassword: PASSWORD,
             contactName: USERNAME,  // Help Asterisk identify the user
             displayName: USERNAME,
-            logLevel: "error",      // Suppress sip.js internal verbose logs
-            logBuiltinEnabled: false, // Kill all built-in sip.js console spam
+            logLevel: "debug",      // Enable verbose logs for debugging
+            logBuiltinEnabled: true, // Enable sip.js built-in console logs
             delegate: {
                 onConnect: () => {
                     console.log(SIP_LOG_PREFIX, "WebSocket connected");
@@ -114,6 +114,15 @@ class SipClient {
 
             if (state === SessionState.Terminated) {
                 console.log(SIP_LOG_PREFIX, "Call ended");
+                // @ts-ignore - Accessing internal details for debugging
+                const terminationReason = (this.session as any).byeRequest ? "Remote Hungup (BYE)" :
+                    // @ts-ignore
+                    (this.session as any).cancelRequest ? "Cancelled" :
+                        // @ts-ignore
+                        (this.session as any).rejectRequest ? `Rejected: ${(this.session as any).rejectRequest.message.statusCode} ${(this.session as any).rejectRequest.message.reasonPhrase}` :
+                            "Unknown / Network Error";
+
+                console.error(SIP_LOG_PREFIX, "Termination Reason Detail:", terminationReason);
                 this.cleanupMedia();
                 this.session = null;
             }
