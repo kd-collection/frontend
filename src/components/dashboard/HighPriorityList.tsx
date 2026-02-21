@@ -3,13 +3,14 @@ import Link from "next/link";
 import Badge from "@/components/ui/Badge";
 import { formatIDR } from "@/lib/utils";
 import { Contract } from "@/lib/api";
+import { useContractSheet } from "@/components/dashboard/ContractSheetProvider";
 
 interface HighPriorityListProps {
     contracts: Contract[];
-    onOpenDetail: (contract: Contract) => void;
 }
 
-export default function HighPriorityList({ contracts, onOpenDetail }: HighPriorityListProps) {
+export default function HighPriorityList({ contracts }: HighPriorityListProps) {
+    const { openDetail } = useContractSheet();
     return (
         <>
             <div className="flex items-center justify-between mb-4">
@@ -30,7 +31,7 @@ export default function HighPriorityList({ contracts, onOpenDetail }: HighPriori
                         <button
                             key={contract.nid}
                             type="button"
-                            onClick={() => onOpenDetail(contract)}
+                            onClick={() => openDetail(contract)}
                             className="w-full text-left group flex items-center justify-between p-3 rounded-lg bg-bg-app/50 border border-border-subtle hover:border-border-strong hover:bg-bg-card-hover transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 ring-offset-1 ring-offset-bg-app"
                         >
                             <div className="flex items-center gap-3">
