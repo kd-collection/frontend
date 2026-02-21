@@ -23,14 +23,14 @@ export default function RecentActivity({ contracts }: RecentActivityProps) {
                             <div className="flex justify-between items-start mb-0.5">
                                 <div className="flex items-center gap-2">
                                     <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors truncate max-w-[120px]">
-                                        {contract.customer_name || contract.cname}
+                                        {contract.customerName}
                                     </p>
                                 </div>
-                                <span className="text-[10px] font-medium text-text-muted/70">{formatDate(contract.dcreated_at)}</span>
+                                <span className="text-[10px] font-medium text-text-muted/70">{formatDate(contract.createdAt)}</span>
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <p className="text-xs text-secondary font-bold tracking-tight">{formatIDR(Number(contract.nloan_amount))}</p>
+                                <p className="text-xs text-secondary font-bold tracking-tight">{formatIDR(contract.loanAmount)}</p>
                                 <span className="h-0.5 w-0.5 rounded-full bg-text-muted/50"></span>
                                 <span className="text-[10px] text-text-muted uppercase tracking-wide font-medium">NEW Loan</span>
                             </div>

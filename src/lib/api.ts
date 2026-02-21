@@ -85,7 +85,19 @@ class ApiClient {
     }
 
     async getContractStats() {
-        return this.request<ContractStats>('/contracts/stats');
+        const res = await this.request<ContractStats>('/contracts/stats');
+
+        if (res.success && res.data) {
+            return {
+                ...res,
+                data: {
+                    ...res.data,
+                    highPriority: res.data.highPriority?.map(normalizeContract) || [],
+                    recent: res.data.recent?.map(normalizeContract) || []
+                }
+            };
+        }
+        return res;
     }
 
     async getContractById(id: number) {
@@ -245,7 +257,19 @@ class ApiClient {
 
 // Types
 export interface Contract {
+    // Unique ID
     nid: number;
+
+    // Normalized Display Props
+    id: number;
+    contractNo: string;
+    customerName: string;
+    arrears: number;
+    outstanding: number;
+    loanAmount: number;
+    createdAt: string;
+
+    // Legacy/Raw Backend fields
     ccontract_no: string;
     ccust_id?: string;
     cname?: string;           // Legacy field
@@ -277,6 +301,27 @@ export interface Contract {
     cec_address?: string;
     dcreated_at?: string;
     dmodified_at?: string;
+}
+
+// Normalizer Helper
+export function normalizeContract(raw: Partial<Contract>): Contract {
+    return {
+        ...raw,
+        // Enforce guaranteed fields
+        nid: raw.nid ?? 0,
+        id: raw.nid ?? 0,
+        contractNo: raw.ccontract_no ?? '',
+        customerName: raw.customer_name ?? raw.cname ?? 'Unknown Customer',
+        arrears: Number(raw.narrears ?? 0),
+        outstanding: Number(raw.noutstanding ?? 0),
+        loanAmount: Number(raw.nloan_amount ?? 0),
+        createdAt: raw.dcreated_at ?? new Date().toISOString(),
+
+        // Preserve raw mappings for safety
+        ccontract_no: raw.ccontract_no ?? '',
+        noutstanding: raw.noutstanding ?? 0,
+        narrears: raw.narrears ?? 0
+    } as Contract;
 }
 
 export interface ContractStats {

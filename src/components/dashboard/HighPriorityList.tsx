@@ -39,15 +39,15 @@ export default function HighPriorityList({ contracts }: HighPriorityListProps) {
                                     <AlertTriangle className="h-4 w-4" />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors truncate">{contract.customer_name || contract.cname}</p>
-                                    <p className="text-[11px] text-text-muted font-mono truncate">{contract.ccontract_no}</p>
+                                    <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors truncate">{contract.customerName}</p>
+                                    <p className="text-[11px] text-text-muted font-mono truncate">{contract.contractNo}</p>
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-6 pl-2">
                                 <div className="text-right hidden sm:block shrink-0">
                                     <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Arrears</p>
-                                    <p className="text-sm font-bold text-text-main tabular-nums">{formatIDR(Number(contract.narrears))}</p>
+                                    <p className="text-sm font-bold text-text-main tabular-nums">{formatIDR(contract.arrears)}</p>
                                 </div>
                                 <Badge variant="danger" glow className="shrink-0">
                                     HIGH
