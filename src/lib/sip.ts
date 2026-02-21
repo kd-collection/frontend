@@ -1,10 +1,10 @@
 import { UserAgent, Registerer, Inviter, SessionState, UserAgentOptions, LogLevel, RegistererState } from "sip.js";
 
 // SIP Configuration from Env
-const WEBSOCKET_URL = process.env.NEXT_PUBLIC_SIP_WS_URL || "ws://localhost:8088/ws";
-const DOMAIN = process.env.NEXT_PUBLIC_SIP_DOMAIN || "localhost";
-const USERNAME = process.env.NEXT_PUBLIC_SIP_USERNAME || "101";
-const PASSWORD = process.env.NEXT_PUBLIC_SIP_PASSWORD || "password123";
+const WEBSOCKET_URL = process.env.NEXT_PUBLIC_SIP_WS_URL;
+const DOMAIN = process.env.NEXT_PUBLIC_SIP_DOMAIN;
+const USERNAME = process.env.NEXT_PUBLIC_SIP_USERNAME;
+const PASSWORD = process.env.NEXT_PUBLIC_SIP_PASSWORD;
 
 const SIP_LOG_PREFIX = "[SIP]";
 
@@ -39,6 +39,18 @@ class SipClient {
             displayName: USERNAME,
             logLevel: "debug",      // Enable verbose logs for debugging
             logBuiltinEnabled: true, // Enable sip.js built-in console logs
+            sessionDescriptionHandlerFactoryOptions: {
+                peerConnectionConfiguration: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        {
+                            urls: 'turn:103.148.197.182:3478',
+                            username: 'telephony',
+                            credential: 'TuRn$3rv3r2026!',
+                        },
+                    ],
+                },
+            },
             delegate: {
                 onConnect: () => {
                     console.log(SIP_LOG_PREFIX, "WebSocket connected");
