@@ -24,6 +24,7 @@ class SipClient {
     private reconnectAttempts = 0;
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     private isIntentionalDisconnect = false;
+    private lastStatus: string = 'disconnected';
 
     // Callbacks
     public onStatusChange: ((status: string) => void) | null = null;
@@ -38,9 +39,25 @@ class SipClient {
         this.remoteAudio = audio;
     }
 
+    /**
+     * Get the current tracked status of the SIP client
+     */
+    getStatus(): string {
+        return this.lastStatus;
+    }
+
+    private updateStatus(status: string) {
+        this.lastStatus = status;
+        this.onStatusChange?.(status);
+    }
+
     async connect() {
         if (typeof window === 'undefined') return;
-        if (this.ua) return;
+        if (this.ua) {
+            // Already connected/connecting, just broadcast current status
+            this.updateStatus(this.lastStatus);
+            return;
+        }
 
         this.isIntentionalDisconnect = false;
         this.reconnectAttempts = 0;
@@ -88,12 +105,12 @@ class SipClient {
                 onConnect: () => {
                     console.log(SIP_LOG_PREFIX, "✅ WebSocket connected");
                     this.reconnectAttempts = 0; // Reset on successful connect
-                    this.onStatusChange?.('connected');
+                    this.updateStatus('connected');
                     this.register();
                 },
                 onDisconnect: (error: any) => {
                     console.error(SIP_LOG_PREFIX, "WebSocket disconnected", error || "");
-                    this.onStatusChange?.('disconnected');
+                    this.updateStatus('disconnected');
 
                     // Auto-reconnect if not intentional
                     if (!this.isIntentionalDisconnect) {
@@ -118,7 +135,7 @@ class SipClient {
     private scheduleReconnect() {
         if (this.reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
             console.error(SIP_LOG_PREFIX, `❌ Max reconnection attempts (${RECONNECT_MAX_ATTEMPTS}) reached. Giving up.`);
-            this.onStatusChange?.('failed');
+            this.updateStatus('failed');
             return;
         }
 
@@ -131,7 +148,7 @@ class SipClient {
         this.reconnectAttempts++;
         console.log(SIP_LOG_PREFIX, `🔄 Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts}/${RECONNECT_MAX_ATTEMPTS})...`);
         this.onReconnecting?.(this.reconnectAttempts, RECONNECT_MAX_ATTEMPTS);
-        this.onStatusChange?.('reconnecting');
+        this.updateStatus('reconnecting');
 
         this.reconnectTimer = setTimeout(async () => {
             try {
@@ -158,7 +175,7 @@ class SipClient {
                 console.warn(SIP_LOG_PREFIX, "Registration state is Unregistered.");
             }
 
-            this.onStatusChange?.(state.toString());
+            this.updateStatus(state.toString());
         });
 
         try {

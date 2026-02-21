@@ -62,7 +62,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle flex-shrink-0">
                             <div>
                                 <p className="text-xs text-text-muted uppercase tracking-wide font-medium">Contract</p>
-                                <h2 className="text-lg font-bold text-text-main">{contract.ccontract_no}</h2>
+                                <h2 className="text-lg font-bold text-text-main">{contract.contractNo || contract.ccontract_no}</h2>
                             </div>
                             <button
                                 onClick={onClose}
@@ -117,7 +117,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
 
                             {/* Customer Info */}
                             <DataList title="Customer Information">
-                                <DataListItem icon={User} label="Name" value={contract.customer_name || contract.cname} />
+                                <DataListItem icon={User} label="Name" value={contract.customerName || contract.customer_name || contract.cname} />
                                 <DataListItem icon={CreditCard} label="NIK" value={contract.customer_nik} />
                                 <DataListItem icon={Phone} label="Phone" value={formatPhoneNumber(contract.customer_phone || contract.customer_phone2)} />
                                 {contract.customer_phone && contract.customer_phone2 && (
@@ -193,6 +193,11 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                     >
                                         {isHangingUp ? 'Ending...' : 'Hangup'}
                                     </button>
+                                </div>
+                            ) : (contract.contractNo || contract.ccontract_no) !== "99999999" ? (
+                                <div className="w-full py-3 rounded-lg bg-gray-700/50 text-gray-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-white/5 shadow-inner">
+                                    <AlertCircle className="h-4 w-4" />
+                                    Calls Disabled (Testing Mode)
                                 </div>
                             ) : contract.customer_phone ? (
                                 <button

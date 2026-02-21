@@ -18,7 +18,7 @@ export function useTelephony() {
     const { toast } = useToast();
     const [currentCall, setCurrentCall] = useState<CallSession | null>(null);
     const [isMuted, setIsMuted] = useState(false);
-    const [sipState, setSipState] = useState<SipState>("disconnected");
+    const [sipState, setSipState] = useState<SipState>(sipClient.getStatus() as SipState);
     const [socketConnected, setSocketConnected] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const callEstablishedRef = useRef(false);
@@ -78,7 +78,9 @@ export function useTelephony() {
 
         sipClient.setAudioElement(audio);
 
-        setSipState("connecting");
+        // Remove explicit setSipState("connecting") here so we don't overwrite current active state
+        // and respect whatever sipClient currently has:
+        setSipState(sipClient.getStatus() as SipState);
 
         // SIP connection status
         sipClient.onStatusChange = (status) => {
