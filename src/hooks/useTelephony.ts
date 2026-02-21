@@ -158,6 +158,12 @@ export function useTelephony() {
                     clearCallTimeout();
                     toast(`Call ended — ${event.data?.duration ? `Duration: ${Math.floor(event.data.duration / 60)}m ${event.data.duration % 60}s` : 'completed'}`, "info");
                     telephonySocket.unsubscribeFromCall();
+                    // Auto-clear call UI after a short delay so user sees "Call Ended" briefly
+                    setTimeout(() => {
+                        setCurrentCall(null);
+                        setIsMuted(false);
+                        callEstablishedRef.current = false;
+                    }, 2000);
                     break;
                 case 'BUSY':
                     clearCallTimeout();
