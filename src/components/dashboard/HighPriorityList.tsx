@@ -27,31 +27,32 @@ export default function HighPriorityList({ contracts, onOpenDetail }: HighPriori
                     <div className="text-center py-8 text-text-muted text-sm">No high priority contracts found.</div>
                 ) : (
                     contracts.map((contract) => (
-                        <div
+                        <button
                             key={contract.nid}
+                            type="button"
                             onClick={() => onOpenDetail(contract)}
-                            className="group flex items-center justify-between p-3 rounded-lg bg-bg-app/50 border border-border-subtle hover:border-border-strong hover:bg-bg-card-hover transition-all cursor-pointer"
+                            className="w-full text-left group flex items-center justify-between p-3 rounded-lg bg-bg-app/50 border border-border-subtle hover:border-border-strong hover:bg-bg-card-hover transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40 ring-offset-1 ring-offset-bg-app"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex flex-col items-center justify-center border border-rose-500/20 shadow-sm">
+                                <div className="h-10 w-10 shrink-0 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex flex-col items-center justify-center border border-rose-500/20 shadow-sm">
                                     <AlertTriangle className="h-4 w-4" />
                                 </div>
-                                <div>
-                                    <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors">{contract.customer_name || contract.cname}</p>
-                                    <p className="text-[11px] text-text-muted font-mono">{contract.ccontract_no}</p>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors truncate">{contract.customer_name || contract.cname}</p>
+                                    <p className="text-[11px] text-text-muted font-mono truncate">{contract.ccontract_no}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-6">
-                                <div className="text-right hidden sm:block">
+                            <div className="flex items-center gap-6 pl-2">
+                                <div className="text-right hidden sm:block shrink-0">
                                     <p className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Arrears</p>
                                     <p className="text-sm font-bold text-text-main tabular-nums">{formatIDR(Number(contract.narrears))}</p>
                                 </div>
-                                <Badge variant="danger" glow>
+                                <Badge variant="danger" glow className="shrink-0">
                                     HIGH
                                 </Badge>
                             </div>
-                        </div>
+                        </button>
                     ))
                 )}
             </div>

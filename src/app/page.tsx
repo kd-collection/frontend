@@ -11,6 +11,7 @@ import { useContractStats } from "@/hooks/useContracts";
 import ContractDetailSheet from "@/components/ui/ContractDetailSheet";
 import HighPriorityList from "@/components/dashboard/HighPriorityList";
 import RecentActivity from "@/components/dashboard/RecentActivity";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import { Contract } from "@/lib/api";
 
 const container = {
@@ -39,13 +40,28 @@ export default function Dashboard() {
     setIsDetailOpen(true);
   };
 
-  if (isLoading || !stats) {
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  if (!stats) {
     return (
       <div className="flex h-[80vh] w-full items-center justify-center flex-col gap-4">
-        <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-        <p className="text-sm font-medium text-text-muted animate-pulse">Loading Dashboard...</p>
+        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center">
+          <AlertTriangle className="h-8 w-8 text-destructive animate-pulse" />
+        </div>
+        <div className="text-center space-y-1">
+          <p className="text-sm font-semibold text-text-main">Failed to load dashboard metrics.</p>
+          <p className="text-xs text-text-muted">A network error occurred or the server is unreachable.</p>
+        </div>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-5 py-2 mt-2 text-xs font-semibold rounded-lg bg-card border border-border-subtle hover:bg-bg-card-hover text-text-main transition-colors shadow-sm"
+        >
+          Try Again
+        </button>
       </div>
-    )
+    );
   }
 
   const { summary, highPriority, recent } = stats;
