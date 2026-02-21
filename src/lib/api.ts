@@ -10,6 +10,7 @@ interface ApiResponse<T> {
     data?: T;
     message?: string;
     error?: string;
+    code?: string;  // Error code from telephony API: TRUNK_OFFLINE, ARI_DISCONNECTED, ORIGINATE_TIMEOUT
 }
 
 class ApiClient {
@@ -40,6 +41,7 @@ class ApiClient {
                     success: false,
                     message: data.message || 'Request failed',
                     error: data.error,
+                    code: data.code,
                 };
             }
 

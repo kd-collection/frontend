@@ -9,9 +9,10 @@ import { SessionState } from "sip.js";
 export type SipState = "disconnected" | "connecting" | "connected" | "registered" | "failed" | "reconnecting";
 
 // Timeout: auto-clear "stuck" calls after this many seconds with no state change
-const CALL_TIMEOUT_SECONDS = 60;
+const CALL_TIMEOUT_SECONDS = 90;
 // Timeout for initial dialing phase (before RINGING)
-const DIAL_TIMEOUT_SECONDS = 15;
+// Asterisk needs time to connect to SIP trunk → dial customer → get RINGING signal
+const DIAL_TIMEOUT_SECONDS = 45;
 
 export function useTelephony() {
     const { toast } = useToast();
@@ -42,16 +43,26 @@ export function useTelephony() {
         clearCallTimeout();
         lastStateChangeRef.current = Date.now();
 
-        callTimeoutRef.current = setTimeout(() => {
+        callTimeoutRef.current = setTimeout(async () => {
             console.warn(`[Telephony] Call timeout during "${phase}" phase (${seconds}s). Auto-cleaning up.`);
             toast(`Call timeout — ${phase} took too long`, "error");
 
-            // Force cleanup
+            // Force cleanup — both UI and server-side
             telephonySocket.unsubscribeFromCall();
             if (sipClient.hasActiveSession()) {
                 sipClient.hangup().catch(() => { });
             }
-            setCurrentCall(null);
+
+            // Also cancel the call on the server side
+            setCurrentCall(prev => {
+                if (prev?.id) {
+                    api.hangupCall(prev.id).catch((e) => {
+                        console.warn('[Telephony] Server cancel on timeout failed:', e);
+                    });
+                }
+                return null;
+            });
+
             setIsMuted(false);
             callEstablishedRef.current = false;
         }, seconds * 1000);
@@ -93,7 +104,6 @@ export function useTelephony() {
         sipClient.onIncomingCall = (from: string) => {
             console.log("[Telephony] Incoming SIP call from Asterisk:", from);
             toast("Customer connected — call bridging...", "info");
-            // Clear dialing timeout — we got the callback
             clearCallTimeout();
         };
 
@@ -101,7 +111,7 @@ export function useTelephony() {
         sipClient.onCallStateChange = (state) => {
             if (state === SessionState.Established) {
                 callEstablishedRef.current = true;
-                clearCallTimeout(); // Call is live, no more timeout needed
+                clearCallTimeout();
                 toast("🔊 Call connected!", "success");
                 setCurrentCall(prev => prev ? { ...prev, state: 'up' } : null);
             }
@@ -128,58 +138,67 @@ export function useTelephony() {
         telephonySocket.onCallEvent = (event: CallEvent) => {
             console.log("[Telephony] Socket event:", event.type, event.callId);
 
+            // Reset timeout tracker on every state change
+            lastStateChangeRef.current = Date.now();
+
+            // Handle side effects OUTSIDE of setCurrentCall to avoid setState-during-render
+            switch (event.type) {
+                case 'RINGING':
+                    toast("📞 Customer's phone is ringing...", "info");
+                    startCallTimeout(CALL_TIMEOUT_SECONDS, "ringing");
+                    break;
+                case 'ANSWERED':
+                    toast("✅ Customer answered!", "success");
+                    clearCallTimeout();
+                    break;
+                case 'BRIDGED':
+                    clearCallTimeout();
+                    break;
+                case 'ENDED':
+                    clearCallTimeout();
+                    toast(`Call ended — ${event.data?.duration ? `Duration: ${Math.floor(event.data.duration / 60)}m ${event.data.duration % 60}s` : 'completed'}`, "info");
+                    telephonySocket.unsubscribeFromCall();
+                    break;
+                case 'BUSY':
+                    clearCallTimeout();
+                    toast("📵 Number is busy", "error");
+                    telephonySocket.unsubscribeFromCall();
+                    break;
+                case 'NO_ANSWER':
+                    clearCallTimeout();
+                    toast("⏰ No answer — customer didn't pick up", "error");
+                    telephonySocket.unsubscribeFromCall();
+                    break;
+                case 'FAILED':
+                    clearCallTimeout();
+                    toast(`❌ Call failed: ${event.data?.reason || 'Unknown error'}`, "error");
+                    telephonySocket.unsubscribeFromCall();
+                    break;
+                case 'CANCELED':
+                    clearCallTimeout();
+                    toast("Call canceled", "info");
+                    telephonySocket.unsubscribeFromCall();
+                    break;
+            }
+
+            // Now update state (pure state update, no side effects)
             setCurrentCall(prev => {
                 if (!prev || prev.id !== event.callId) return prev;
 
-                // Reset timeout on every state change
-                lastStateChangeRef.current = Date.now();
-
                 switch (event.type) {
                     case 'RINGING':
-                        toast("📞 Customer's phone is ringing...", "info");
-                        // Extend timeout — customer might take time to answer
-                        startCallTimeout(CALL_TIMEOUT_SECONDS, "ringing");
                         return { ...prev, state: 'Ringing' };
-
                     case 'ANSWERED':
-                        toast("✅ Customer answered!", "success");
-                        clearCallTimeout();
                         return { ...prev, state: 'Answered' };
-
                     case 'BRIDGED':
-                        clearCallTimeout();
                         return { ...prev, state: 'Bridged' };
-
                     case 'ENDED':
-                        clearCallTimeout();
-                        toast(`Call ended — ${event.data?.duration ? `Duration: ${Math.floor(event.data.duration / 60)}m ${event.data.duration % 60}s` : 'completed'}`, "info");
-                        telephonySocket.unsubscribeFromCall();
                         return { ...prev, state: 'Ended', duration: event.data?.duration };
-
                     case 'BUSY':
-                        clearCallTimeout();
-                        toast("📵 Number is busy", "error");
-                        telephonySocket.unsubscribeFromCall();
-                        return null;
-
                     case 'NO_ANSWER':
-                        clearCallTimeout();
-                        toast("⏰ No answer — customer didn't pick up", "error");
-                        telephonySocket.unsubscribeFromCall();
-                        return null;
-
                     case 'FAILED':
-                        clearCallTimeout();
-                        toast(`❌ Call failed: ${event.data?.reason || 'Unknown error'}`, "error");
-                        telephonySocket.unsubscribeFromCall();
-                        return null;
-
                     case 'CANCELED':
-                        clearCallTimeout();
-                        toast("Call canceled", "info");
-                        telephonySocket.unsubscribeFromCall();
                         return null;
-
                     default:
                         return prev;
                 }
@@ -208,22 +227,28 @@ export function useTelephony() {
     const { data: status } = useQuery({
         queryKey: ["telephony", "status"],
         queryFn: async () => {
-            const response = await api.getTelephonyStatus();
-            return response.success ? response.data : null;
+            try {
+                const response = await api.getTelephonyStatus();
+                return response.success ? response.data : null;
+            } catch {
+                // Silently fail — status is a background check, not critical
+                return null;
+            }
         },
-        refetchInterval: 30000
+        refetchInterval: 30000,
+        retry: false,  // Don't retry on failure — we poll every 30s anyway
     });
 
     /**
      * Initiate Call — the CORRECT click-to-call flow:
-     * 
+     *
      * 1. Hit REST API: POST /api/v1/call with destination & agentId
      * 2. Telephony Service tells Asterisk to originate call to customer
      * 3. Customer's phone rings → customer picks up
      * 4. Asterisk dials BACK to our SIP extension (101) via WebRTC
      * 5. SipClient auto-answers (onInvite handler in sip.ts)
      * 6. Audio bridge established — we can talk!
-     * 
+     *
      * Socket.IO provides real-time status: RINGING → ANSWERED → BRIDGED → ENDED
      */
     const callMutation = useMutation({
@@ -241,6 +266,13 @@ export function useTelephony() {
                 throw new Error("SIP not registered — can't receive calls from Asterisk");
             }
 
+            // Pre-flight: check if telephony service is ready
+            const statusCheck = await api.getTelephonyStatus();
+            if (statusCheck.success && statusCheck.data && !statusCheck.data.ready_to_call) {
+                const trunkState = statusCheck.data.trunk_info?.state || 'unknown';
+                throw new Error(`Telephony service not ready — trunk is ${trunkState}. Contact admin.`);
+            }
+
             // Step 1: Hit REST API to trigger Asterisk origination
             const response = await api.initiateCall(
                 destination,
@@ -249,7 +281,20 @@ export function useTelephony() {
             );
 
             if (!response.success) {
-                throw new Error((response as any).message || 'Failed to initiate call');
+                // Handle specific error codes from the server
+                const code = (response as any).code;
+                const msg = (response as any).message;
+
+                switch (code) {
+                    case 'TRUNK_OFFLINE':
+                        throw new Error("SIP trunk is offline — outbound calls unavailable. Contact admin.");
+                    case 'ARI_DISCONNECTED':
+                        throw new Error("Asterisk engine is down — calls unavailable. Contact admin.");
+                    case 'ORIGINATE_TIMEOUT':
+                        throw new Error("Call timed out — could not reach the number.");
+                    default:
+                        throw new Error(msg || 'Failed to initiate call');
+                }
             }
 
             // Step 2: Subscribe to real-time events for this call
