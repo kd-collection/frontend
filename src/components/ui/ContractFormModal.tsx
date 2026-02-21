@@ -232,7 +232,7 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
                                 </div>
 
                                 {/* Loan Amount & Outstanding */}
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-text-muted mb-1.5">
                                             Loan Amount
@@ -262,7 +262,7 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
                                 </div>
 
                                 {/* Tenor & Handler */}
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-text-muted mb-1.5">
                                             Tenor (months)
@@ -292,7 +292,7 @@ export default function ContractFormModal({ isOpen, onClose, contract }: Contrac
                                 </div>
 
                                 {/* Due Date & Disbursement Date */}
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-text-muted mb-1.5">
                                             Due Date

@@ -196,9 +196,9 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
                                 </button>
                             </div>
 
-                            <div className="flex flex-1 overflow-hidden">
+                            <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
                                 {/* Left Panel: Generator Controls */}
-                                <div className="w-1/3 bg-bg-surface/30 border-r border-border-subtle p-6 overflow-y-auto space-y-6">
+                                <div className="w-full md:w-1/3 bg-bg-surface/30 border-b md:border-b-0 md:border-r border-border-subtle p-6 overflow-y-auto space-y-6 shrink-0">
                                     <div>
                                         <label className="text-xs font-bold text-text-muted uppercase tracking-wider">Total Outstanding</label>
                                         <div className="text-xl font-bold text-text-main mt-1 font-mono">{formatRp(totalDebt)}</div>
@@ -312,7 +312,7 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
                                                                         const val = e.target.value.replace(/\D/g, '');
                                                                         handleItemChange(idx, 'namount', val ? Number(val) : 0);
                                                                     }}
-                                                                    className="bg-transparent border-b border-transparent hover:border-border-subtle focus:border-primary focus:outline-none w-28 text-right font-mono text-text-main"
+                                                                    className="bg-transparent border-b border-transparent hover:border-border-subtle focus:border-primary focus:outline-none w-24 sm:w-28 text-right font-mono text-text-main"
                                                                 />
                                                             </td>
                                                             <td className="px-4 py-2 text-center">
@@ -328,8 +328,8 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
                                     </div>
 
                                     {/* Summary Footer */}
-                                    <div className="p-4 border-t border-border-subtle bg-bg-surface flex items-center justify-between gap-4">
-                                        <div className="flex flex-col">
+                                    <div className="p-4 border-t border-border-subtle bg-bg-surface flex flex-col sm:flex-row items-center sm:justify-between gap-4 block md:shrink-0 sticky bottom-0 z-20">
+                                        <div className="flex flex-col w-full sm:w-auto">
                                             <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">Total Scheduled</div>
                                             <div className="flex items-baseline gap-2">
                                                 <span className={`text-lg font-bold font-mono ${isTotalMatch ? "text-green-600 dark:text-green-400" : (totalScheduled > totalDebt ? "text-blue-600 dark:text-blue-400" : "text-red-600 dark:text-red-400")}`}>
@@ -350,12 +350,12 @@ export default function PaymentPlanModal({ isOpen, onClose, contract }: PaymentP
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex gap-3 shrink-0">
-                                            <button onClick={onClose} className="px-4 py-2 text-sm text-text-muted hover:text-text-main transition-colors">Cancel</button>
+                                        <div className="flex gap-3 shrink-0 w-full sm:w-auto mt-2 sm:mt-0">
+                                            <button onClick={onClose} className="flex-1 sm:flex-none px-4 py-2 text-sm text-text-muted hover:text-text-main transition-colors border border-border-subtle rounded-lg sm:border-transparent sm:rounded-none">Cancel</button>
                                             <button
                                                 onClick={() => saveSchedule(scheduleItems)}
                                                 disabled={isSaving || scheduleItems.length === 0}
-                                                className="px-6 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 shadow-sm transition-all active:scale-95"
+                                                className="flex-1 sm:flex-none justify-center px-6 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary/90 flex items-center gap-2 disabled:opacity-50 shadow-sm transition-all active:scale-95"
                                             >
                                                 {isSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                                                 Save Schedule

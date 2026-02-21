@@ -217,7 +217,7 @@ export default function ContractsPage() {
     const gridTemplateColumns = [
         "40px", // Row number
         ...CONTRACT_COLUMNS.filter(c => visibleColumns.includes(c.id)).map(c => c.width),
-        "80px" // Actions (Edit + Delete)
+        "120px" // Actions (Edit + Delete + Calendar)
     ].join(" ");
 
     return (

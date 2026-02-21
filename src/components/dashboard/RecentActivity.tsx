@@ -20,13 +20,13 @@ export default function RecentActivity({ contracts }: RecentActivityProps) {
                             {/* Timeline Dot */}
                             <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-secondary border-2 border-card group-hover:scale-110 transition-transform shadow-sm"></div>
 
-                            <div className="flex justify-between items-start mb-0.5">
-                                <div className="flex items-center gap-2">
-                                    <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors truncate max-w-[120px]">
+                            <div className="flex justify-between items-start mb-0.5 gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    <p className="text-sm font-semibold text-text-main group-hover:text-primary transition-colors truncate">
                                         {contract.customerName}
                                     </p>
                                 </div>
-                                <span className="text-[10px] font-medium text-text-muted/70">{formatDate(contract.createdAt)}</span>
+                                <span className="text-[10px] font-medium text-text-muted/70 shrink-0 mt-0.5">{formatDate(contract.createdAt)}</span>
                             </div>
 
                             <div className="flex items-center gap-2">

@@ -200,7 +200,7 @@ export default function SettingsPage() {
                         </span>
                     </div>
 
-                    <div className="rounded-xl border border-border-subtle bg-card overflow-hidden shadow-sm">
+                    <div className="rounded-xl border border-border-subtle bg-card overflow-x-auto shadow-sm custom-scrollbar min-w-[300px]">
                         {/* Header */}
                         <div
                             className="grid gap-4 px-6 py-3 border-b border-border-subtle bg-bg-app/50 text-xs font-bold text-text-muted uppercase tracking-wider"

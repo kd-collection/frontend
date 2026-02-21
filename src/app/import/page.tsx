@@ -256,7 +256,7 @@ export default function ImportPage() {
                                 </div>
 
                                 {/* Stats */}
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                     <div className="p-4 rounded-lg bg-bg-app border border-border-subtle text-center">
                                         <p className="text-2xl font-bold text-text-main">{result.total}</p>
                                         <p className="text-xs text-text-muted uppercase tracking-wide font-medium">Total Rows</p>

@@ -41,18 +41,18 @@ export default function StatsCard({ label, value, trend, trendUp, icon: Icon, co
             </div>
 
             <div>
-                <h3 className="text-3xl font-bold text-text-main tracking-tight mb-2">{value}</h3>
+                <h3 className="text-2xl lg:text-3xl font-bold text-text-main tracking-tight mb-2 truncate" title={value}>{value}</h3>
 
                 {trend && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
                         <span className={cn(
                             "flex items-center gap-0.5 text-sm font-bold",
                             trendUp ? "text-emerald-700 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
                         )}>
-                            {trendUp ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                            {trend}
+                            {trendUp ? <ArrowUp className="h-3 w-3 shrink-0" /> : <ArrowDown className="h-3 w-3 shrink-0" />}
+                            <span className="truncate max-w-[120px]" title={trend}>{trend}</span>
                         </span>
-                        <span className="text-xs text-text-muted">vs last month</span>
+                        <span className="text-xs text-text-muted whitespace-nowrap">vs last month</span>
                     </div>
                 )}
             </div>
