@@ -176,15 +176,16 @@ class ApiClient {
         };
     }
 
-    async initiateCall(destination: string, callerId?: string, options?: { webhookUrl?: string; timeout?: number }) {
+    async initiateCall(destination: string, agentId: string = 'agent1', options?: { callerId?: string; webhookUrl?: string; timeout?: number }) {
         const response = await this.request<{ message: string; call: CallSession } | any>('/call', {
             method: 'POST',
             headers: this.telephonyHeaders,
             body: JSON.stringify({
                 destination,
-                callerId,
+                agentId,
+                callerId: options?.callerId,
                 webhookUrl: options?.webhookUrl,
-                timeout: options?.timeout
+                timeout: options?.timeout || 30
             }),
         }, this.telephonyUrl) as any;
 

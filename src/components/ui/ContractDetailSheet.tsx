@@ -175,14 +175,14 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                 <button
                                     onClick={() => initiateCall({
                                         destination: contract.customer_phone || "",
+                                        agentId: "agent1",
                                         callerId: "9999"
                                     })}
                                     disabled={isCalling || sipState !== 'registered'}
-                                    className={`w-full py-3 rounded-lg font-semibold shadow-lg transition-all flex items-center justify-center gap-2 ${
-                                        sipState === 'registered'
+                                    className={`w-full py-3 rounded-lg font-semibold shadow-lg transition-all flex items-center justify-center gap-2 ${sipState === 'registered'
                                             ? 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98]'
                                             : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5 shadow-none'
-                                    }`}
+                                        }`}
                                 >
                                     {isCalling ? (
                                         <>
