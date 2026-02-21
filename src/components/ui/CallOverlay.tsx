@@ -47,6 +47,16 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
             case 'up':
             case 'bridged':
                 return formatDuration(duration);
+            case 'ended':
+                return 'Call Ended';
+            case 'busy':
+                return 'Busy';
+            case 'no_answer':
+                return 'No Answer';
+            case 'failed':
+                return 'Failed';
+            case 'canceled':
+                return 'Canceled';
             default:
                 return `${state}...`;
         }

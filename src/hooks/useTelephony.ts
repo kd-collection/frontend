@@ -3,6 +3,7 @@ import { api, CallSession } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { sipClient } from "@/lib/sip";
+import { telephonySocket, CallEvent } from "@/lib/telephony-socket";
 import { SessionState } from "sip.js";
 
 export type SipState = "disconnected" | "connecting" | "connected" | "registered" | "failed";
@@ -12,6 +13,7 @@ export function useTelephony() {
     const [currentCall, setCurrentCall] = useState<CallSession | null>(null);
     const [isMuted, setIsMuted] = useState(false);
     const [sipState, setSipState] = useState<SipState>("disconnected");
+    const [socketConnected, setSocketConnected] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const callEstablishedRef = useRef(false);
 
@@ -64,7 +66,64 @@ export function useTelephony() {
                 setCurrentCall(null);
                 setIsMuted(false);
                 callEstablishedRef.current = false;
+                // Unsubscribe from socket events
+                telephonySocket.unsubscribeFromCall();
             }
+        };
+
+        // === Socket.IO — Real-time call events ===
+        telephonySocket.onConnectionChange = (connected) => {
+            setSocketConnected(connected);
+        };
+
+        telephonySocket.onCallEvent = (event: CallEvent) => {
+            console.log("[Telephony] Socket event:", event.type, event.callId);
+
+            setCurrentCall(prev => {
+                if (!prev || prev.id !== event.callId) return prev;
+
+                switch (event.type) {
+                    case 'RINGING':
+                        toast("📞 Customer's phone is ringing...", "info");
+                        return { ...prev, state: 'Ringing' };
+
+                    case 'ANSWERED':
+                        toast("✅ Customer answered!", "success");
+                        return { ...prev, state: 'Answered' };
+
+                    case 'BRIDGED':
+                        return { ...prev, state: 'Bridged' };
+
+                    case 'ENDED':
+                        toast(`Call ended — ${event.data?.duration ? `Duration: ${Math.floor(event.data.duration / 60)}m ${event.data.duration % 60}s` : 'completed'}`, "info");
+                        telephonySocket.unsubscribeFromCall();
+                        // Don't clear yet — let SIP termination handle cleanup
+                        return { ...prev, state: 'Ended', duration: event.data?.duration };
+
+                    case 'BUSY':
+                        toast("📵 Number is busy", "error");
+                        telephonySocket.unsubscribeFromCall();
+                        return null;
+
+                    case 'NO_ANSWER':
+                        toast("⏰ No answer — customer didn't pick up", "error");
+                        telephonySocket.unsubscribeFromCall();
+                        return null;
+
+                    case 'FAILED':
+                        toast(`❌ Call failed: ${event.data?.reason || 'Unknown error'}`, "error");
+                        telephonySocket.unsubscribeFromCall();
+                        return null;
+
+                    case 'CANCELED':
+                        toast("Call canceled", "info");
+                        telephonySocket.unsubscribeFromCall();
+                        return null;
+
+                    default:
+                        return prev;
+                }
+            });
         };
 
         // Auto-connect SIP (register to Asterisk)
@@ -72,11 +131,15 @@ export function useTelephony() {
             setSipState("failed");
         });
 
+        // Auto-connect Socket.IO (for real-time events)
+        telephonySocket.connect();
+
         return () => {
             if (audio.parentNode) {
                 audio.srcObject = null;
                 audio.parentNode.removeChild(audio);
             }
+            telephonySocket.unsubscribeFromCall();
         };
     }, []);
 
@@ -99,6 +162,8 @@ export function useTelephony() {
      * 4. Asterisk dials BACK to our SIP extension (101) via WebRTC
      * 5. SipClient auto-answers (onInvite handler in sip.ts)
      * 6. Audio bridge established — we can talk!
+     * 
+     * Socket.IO provides real-time status: RINGING → ANSWERED → BRIDGED → ENDED
      */
     const callMutation = useMutation({
         mutationFn: async ({ destination, agentId, callerId }: { destination: string; agentId?: string; callerId?: string }) => {
@@ -121,9 +186,11 @@ export function useTelephony() {
                 throw new Error((response as any).message || 'Failed to initiate call');
             }
 
-            // Step 2: Call initiated! Asterisk is now dialing the customer.
-            // When customer picks up, Asterisk will send us an INVITE via WebRTC
-            // which sipClient.onInvite will auto-answer.
+            // Step 2: Subscribe to real-time events for this call
+            if (response.data?.id) {
+                telephonySocket.subscribeToCall(response.data.id);
+            }
+
             return response;
         },
         onSuccess: (data) => {
@@ -151,6 +218,9 @@ export function useTelephony() {
     const hangupMutation = useMutation({
         mutationFn: async (callId: string) => {
             if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') return { success: true };
+
+            // Unsubscribe from socket events
+            telephonySocket.unsubscribeFromCall();
 
             // Hangup SIP session (WebRTC side)
             if (sipClient.hasActiveSession()) {
@@ -185,6 +255,7 @@ export function useTelephony() {
     return {
         status,
         sipState,
+        socketConnected,
         currentCall,
         initiateCall: callMutation.mutate,
         isCalling: callMutation.isPending,
