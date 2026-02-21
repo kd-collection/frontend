@@ -96,6 +96,11 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                     <div className="h-2 w-2 rounded-full bg-red-500" />
                                     <p className="text-xs font-medium text-red-400">SIP Registration Failed — Check extension credentials</p>
                                 </div>
+                            ) : sipState === 'reconnecting' ? (
+                                <div className="flex items-center gap-2 px-4 py-2 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+                                    <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+                                    <p className="text-xs font-medium text-orange-400">SIP Reconnecting...</p>
+                                </div>
                             ) : sipState === 'connecting' || sipState === 'connected' ? (
                                 <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                                     <div className="h-2 w-2 rounded-full bg-yellow-500 animate-pulse" />
@@ -210,7 +215,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                     ) : sipState !== 'registered' ? (
                                         <>
                                             <Phone className="h-4 w-4" />
-                                            {sipState === 'failed' ? 'SIP Auth Failed' : sipState === 'disconnected' ? 'SIP Disconnected' : 'Connecting SIP...'}
+                                            {sipState === 'failed' ? 'SIP Auth Failed' : sipState === 'reconnecting' ? 'SIP Reconnecting...' : sipState === 'disconnected' ? 'SIP Disconnected' : 'Connecting SIP...'}
                                         </>
                                     ) : (
                                         <>

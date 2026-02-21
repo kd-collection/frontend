@@ -6,7 +6,12 @@ import { sipClient } from "@/lib/sip";
 import { telephonySocket, CallEvent } from "@/lib/telephony-socket";
 import { SessionState } from "sip.js";
 
-export type SipState = "disconnected" | "connecting" | "connected" | "registered" | "failed";
+export type SipState = "disconnected" | "connecting" | "connected" | "registered" | "failed" | "reconnecting";
+
+// Timeout: auto-clear "stuck" calls after this many seconds with no state change
+const CALL_TIMEOUT_SECONDS = 60;
+// Timeout for initial dialing phase (before RINGING)
+const DIAL_TIMEOUT_SECONDS = 15;
 
 export function useTelephony() {
     const { toast } = useToast();
@@ -16,6 +21,41 @@ export function useTelephony() {
     const [socketConnected, setSocketConnected] = useState(false);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const callEstablishedRef = useRef(false);
+    const callTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const lastStateChangeRef = useRef<number>(0);
+
+    /**
+     * Clear any pending call timeout watchdog.
+     */
+    const clearCallTimeout = useCallback(() => {
+        if (callTimeoutRef.current) {
+            clearTimeout(callTimeoutRef.current);
+            callTimeoutRef.current = null;
+        }
+    }, []);
+
+    /**
+     * Start a timeout watchdog for the current call phase.
+     * If no state change happens within `seconds`, auto-cleanup the stuck call.
+     */
+    const startCallTimeout = useCallback((seconds: number, phase: string) => {
+        clearCallTimeout();
+        lastStateChangeRef.current = Date.now();
+
+        callTimeoutRef.current = setTimeout(() => {
+            console.warn(`[Telephony] Call timeout during "${phase}" phase (${seconds}s). Auto-cleaning up.`);
+            toast(`Call timeout — ${phase} took too long`, "error");
+
+            // Force cleanup
+            telephonySocket.unsubscribeFromCall();
+            if (sipClient.hasActiveSession()) {
+                sipClient.hangup().catch(() => { });
+            }
+            setCurrentCall(null);
+            setIsMuted(false);
+            callEstablishedRef.current = false;
+        }, seconds * 1000);
+    }, [clearCallTimeout, toast]);
 
     // Create and append audio element to DOM once
     useEffect(() => {
@@ -25,7 +65,6 @@ export function useTelephony() {
         document.body.appendChild(audio);
         audioRef.current = audio;
 
-        // Give the audio element to sipClient so it can attach remote audio
         sipClient.setAudioElement(audio);
 
         setSipState("connecting");
@@ -40,24 +79,35 @@ export function useTelephony() {
                 setSipState("registered");
             } else if (status === 'Unregistered') {
                 setSipState("failed");
+            } else if (status === 'reconnecting') {
+                setSipState("reconnecting");
             }
+        };
+
+        // SIP reconnection attempts
+        sipClient.onReconnecting = (attempt, maxAttempts) => {
+            toast(`SIP reconnecting... (${attempt}/${maxAttempts})`, "info");
         };
 
         // When Asterisk dials back to us (after customer picks up)
         sipClient.onIncomingCall = (from: string) => {
             console.log("[Telephony] Incoming SIP call from Asterisk:", from);
             toast("Customer connected — call bridging...", "info");
+            // Clear dialing timeout — we got the callback
+            clearCallTimeout();
         };
 
         // SIP session state changes (established, terminated, etc.)
         sipClient.onCallStateChange = (state) => {
             if (state === SessionState.Established) {
                 callEstablishedRef.current = true;
+                clearCallTimeout(); // Call is live, no more timeout needed
                 toast("🔊 Call connected!", "success");
                 setCurrentCall(prev => prev ? { ...prev, state: 'up' } : null);
             }
 
             if (state === SessionState.Terminated) {
+                clearCallTimeout();
                 if (callEstablishedRef.current) {
                     toast("Call ended", "info");
                 } else {
@@ -66,7 +116,6 @@ export function useTelephony() {
                 setCurrentCall(null);
                 setIsMuted(false);
                 callEstablishedRef.current = false;
-                // Unsubscribe from socket events
                 telephonySocket.unsubscribeFromCall();
             }
         };
@@ -82,40 +131,51 @@ export function useTelephony() {
             setCurrentCall(prev => {
                 if (!prev || prev.id !== event.callId) return prev;
 
+                // Reset timeout on every state change
+                lastStateChangeRef.current = Date.now();
+
                 switch (event.type) {
                     case 'RINGING':
                         toast("📞 Customer's phone is ringing...", "info");
+                        // Extend timeout — customer might take time to answer
+                        startCallTimeout(CALL_TIMEOUT_SECONDS, "ringing");
                         return { ...prev, state: 'Ringing' };
 
                     case 'ANSWERED':
                         toast("✅ Customer answered!", "success");
+                        clearCallTimeout();
                         return { ...prev, state: 'Answered' };
 
                     case 'BRIDGED':
+                        clearCallTimeout();
                         return { ...prev, state: 'Bridged' };
 
                     case 'ENDED':
+                        clearCallTimeout();
                         toast(`Call ended — ${event.data?.duration ? `Duration: ${Math.floor(event.data.duration / 60)}m ${event.data.duration % 60}s` : 'completed'}`, "info");
                         telephonySocket.unsubscribeFromCall();
-                        // Don't clear yet — let SIP termination handle cleanup
                         return { ...prev, state: 'Ended', duration: event.data?.duration };
 
                     case 'BUSY':
+                        clearCallTimeout();
                         toast("📵 Number is busy", "error");
                         telephonySocket.unsubscribeFromCall();
                         return null;
 
                     case 'NO_ANSWER':
+                        clearCallTimeout();
                         toast("⏰ No answer — customer didn't pick up", "error");
                         telephonySocket.unsubscribeFromCall();
                         return null;
 
                     case 'FAILED':
+                        clearCallTimeout();
                         toast(`❌ Call failed: ${event.data?.reason || 'Unknown error'}`, "error");
                         telephonySocket.unsubscribeFromCall();
                         return null;
 
                     case 'CANCELED':
+                        clearCallTimeout();
                         toast("Call canceled", "info");
                         telephonySocket.unsubscribeFromCall();
                         return null;
@@ -135,6 +195,7 @@ export function useTelephony() {
         telephonySocket.connect();
 
         return () => {
+            clearCallTimeout();
             if (audio.parentNode) {
                 audio.srcObject = null;
                 audio.parentNode.removeChild(audio);
@@ -167,6 +228,11 @@ export function useTelephony() {
      */
     const callMutation = useMutation({
         mutationFn: async ({ destination, agentId, callerId }: { destination: string; agentId?: string; callerId?: string }) => {
+            // Double-click prevention: don't allow if there's already an active call
+            if (currentCall) {
+                throw new Error("There's already an active call. Please hang up first.");
+            }
+
             if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
                 return { success: true, data: { id: 'mock', destination, callerId: 'mock', state: 'ringing' } as CallSession };
             }
@@ -191,6 +257,9 @@ export function useTelephony() {
                 telephonySocket.subscribeToCall(response.data.id);
             }
 
+            // Step 3: Start dial timeout watchdog
+            startCallTimeout(DIAL_TIMEOUT_SECONDS, "dialing");
+
             return response;
         },
         onSuccess: (data) => {
@@ -208,6 +277,7 @@ export function useTelephony() {
             }
         },
         onError: (err) => {
+            clearCallTimeout();
             toast(err.message || "Failed to initiate call", "error");
         }
     });
@@ -218,6 +288,8 @@ export function useTelephony() {
     const hangupMutation = useMutation({
         mutationFn: async (callId: string) => {
             if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') return { success: true };
+
+            clearCallTimeout();
 
             // Unsubscribe from socket events
             telephonySocket.unsubscribeFromCall();
@@ -231,7 +303,6 @@ export function useTelephony() {
             try {
                 await api.hangupCall(callId);
             } catch (e) {
-                // Server-side hangup may fail if call already ended — that's OK
                 console.warn("[Telephony] Server hangup failed (call may already be ended):", e);
             }
 
@@ -242,7 +313,9 @@ export function useTelephony() {
             setIsMuted(false);
         },
         onError: () => {
-            // Hangup error — call may already be terminated
+            // Force cleanup even on error
+            setCurrentCall(null);
+            setIsMuted(false);
         }
     });
 

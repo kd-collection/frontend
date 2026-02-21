@@ -8,6 +8,11 @@ const PASSWORD = process.env.NEXT_PUBLIC_SIP_PASSWORD;
 
 const SIP_LOG_PREFIX = "[SIP]";
 
+// Reconnection config
+const RECONNECT_INITIAL_DELAY = 2000;   // 2 seconds
+const RECONNECT_MAX_DELAY = 30000;      // 30 seconds
+const RECONNECT_MAX_ATTEMPTS = 15;
+
 class SipClient {
     private ua: UserAgent | null = null;
     private registerer: Registerer | null = null;
@@ -15,14 +20,19 @@ class SipClient {
     private remoteAudio: HTMLAudioElement | null = null;
     private localStream: MediaStream | null = null;
 
+    // Reconnection state
+    private reconnectAttempts = 0;
+    private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    private isIntentionalDisconnect = false;
+
     // Callbacks
     public onStatusChange: ((status: string) => void) | null = null;
     public onCallStateChange: ((state: SessionState) => void) | null = null;
     public onIncomingCall: ((from: string) => void) | null = null;
+    public onReconnecting: ((attempt: number, maxAttempts: number) => void) | null = null;
 
     /**
      * Set the audio element used for remote audio playback.
-     * Must be called before any call can produce audio.
      */
     setAudioElement(audio: HTMLAudioElement) {
         this.remoteAudio = audio;
@@ -32,7 +42,21 @@ class SipClient {
         if (typeof window === 'undefined') return;
         if (this.ua) return;
 
-        console.log(SIP_LOG_PREFIX, "Connecting...", { server: WEBSOCKET_URL, user: USERNAME, domain: DOMAIN, password: PASSWORD ? `${PASSWORD.slice(0, 3)}***${PASSWORD.slice(-3)}` : "EMPTY" });
+        this.isIntentionalDisconnect = false;
+        this.reconnectAttempts = 0;
+
+        console.log(SIP_LOG_PREFIX, "Connecting...", { server: WEBSOCKET_URL, user: USERNAME, domain: DOMAIN });
+
+        await this.createUserAgent();
+    }
+
+    private async createUserAgent() {
+        // Clean up existing UA if any
+        if (this.ua) {
+            try { await this.ua.stop(); } catch (_) { /* ignore */ }
+            this.ua = null;
+            this.registerer = null;
+        }
 
         const uri = UserAgent.makeURI(`sip:${USERNAME}@${DOMAIN}`);
         if (!uri) throw new Error("Failed to create URI");
@@ -46,7 +70,7 @@ class SipClient {
             authorizationPassword: PASSWORD,
             contactName: USERNAME,
             displayName: USERNAME,
-            logLevel: "debug",
+            logLevel: "warn",          // Reduce noise in production
             logBuiltinEnabled: true,
             sessionDescriptionHandlerFactoryOptions: {
                 peerConnectionConfiguration: {
@@ -62,17 +86,20 @@ class SipClient {
             },
             delegate: {
                 onConnect: () => {
-                    console.log(SIP_LOG_PREFIX, "WebSocket connected");
+                    console.log(SIP_LOG_PREFIX, "✅ WebSocket connected");
+                    this.reconnectAttempts = 0; // Reset on successful connect
                     this.onStatusChange?.('connected');
                     this.register();
                 },
                 onDisconnect: (error: any) => {
                     console.error(SIP_LOG_PREFIX, "WebSocket disconnected", error || "");
                     this.onStatusChange?.('disconnected');
+
+                    // Auto-reconnect if not intentional
+                    if (!this.isIntentionalDisconnect) {
+                        this.scheduleReconnect();
+                    }
                 },
-                // Handle incoming call from Asterisk
-                // This fires when Asterisk dials back to our extension (101/102)
-                // after the customer picks up the outbound call.
                 onInvite: (invitation: Invitation) => {
                     console.log(SIP_LOG_PREFIX, "📞 Incoming INVITE from Asterisk:", invitation.remoteIdentity?.uri?.toString());
                     this.handleIncomingCall(invitation);
@@ -83,6 +110,37 @@ class SipClient {
 
         this.ua = new UserAgent(options);
         await this.ua.start();
+    }
+
+    /**
+     * Schedule a reconnection attempt with exponential backoff.
+     */
+    private scheduleReconnect() {
+        if (this.reconnectAttempts >= RECONNECT_MAX_ATTEMPTS) {
+            console.error(SIP_LOG_PREFIX, `❌ Max reconnection attempts (${RECONNECT_MAX_ATTEMPTS}) reached. Giving up.`);
+            this.onStatusChange?.('failed');
+            return;
+        }
+
+        // Exponential backoff: 2s, 4s, 8s, 16s, 30s (capped)
+        const delay = Math.min(
+            RECONNECT_INITIAL_DELAY * Math.pow(2, this.reconnectAttempts),
+            RECONNECT_MAX_DELAY
+        );
+
+        this.reconnectAttempts++;
+        console.log(SIP_LOG_PREFIX, `🔄 Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts}/${RECONNECT_MAX_ATTEMPTS})...`);
+        this.onReconnecting?.(this.reconnectAttempts, RECONNECT_MAX_ATTEMPTS);
+        this.onStatusChange?.('reconnecting');
+
+        this.reconnectTimer = setTimeout(async () => {
+            try {
+                await this.createUserAgent();
+            } catch (err) {
+                console.error(SIP_LOG_PREFIX, "Reconnect failed:", err);
+                // Will trigger onDisconnect → scheduleReconnect again
+            }
+        }, delay);
     }
 
     private async register() {
@@ -104,7 +162,7 @@ class SipClient {
         });
 
         try {
-            console.log(SIP_LOG_PREFIX, "Sending REGISTER to", `sip:${USERNAME}@${DOMAIN}`, "via", WEBSOCKET_URL);
+            console.log(SIP_LOG_PREFIX, "Sending REGISTER...");
             await this.registerer.register();
         } catch (err) {
             console.error(SIP_LOG_PREFIX, "Register failed:", err);
@@ -112,22 +170,12 @@ class SipClient {
     }
 
     /**
-     * Handle incoming call from Asterisk.
-     * 
-     * Flow:
-     * 1. User clicks "Call" in UI → REST API POST /api/v1/call
-     * 2. Telephony Service tells Asterisk to originate a call to the customer
-     * 3. Customer's phone rings, customer picks up
-     * 4. Asterisk dials BACK to our extension (101) via WebRTC
-     * 5. THIS METHOD fires — we auto-answer and setup audio
-     * 6. Audio bridge established — user & customer can talk
+     * Handle incoming call from Asterisk (auto-answer).
      */
     private handleIncomingCall(invitation: Invitation) {
-        // Notify UI about incoming call
         const callerUri = invitation.remoteIdentity?.uri?.toString() || "unknown";
         this.onIncomingCall?.(callerUri);
 
-        // Auto-answer the call (this is expected — Asterisk is bridging us)
         console.log(SIP_LOG_PREFIX, "Auto-answering incoming call...");
 
         invitation.accept({
@@ -136,10 +184,8 @@ class SipClient {
             }
         });
 
-        // Store session reference
         this.currentSession = invitation;
 
-        // Listen for session state changes
         invitation.stateChange.addListener((state: SessionState) => {
             console.log(SIP_LOG_PREFIX, "Call state:", state);
             this.onCallStateChange?.(state);
@@ -172,12 +218,10 @@ class SipClient {
 
         const remoteStream = new MediaStream();
 
-        // Grab any tracks already present
         pc.getReceivers().forEach(receiver => {
             if (receiver.track) remoteStream.addTrack(receiver.track);
         });
 
-        // Also listen for tracks that arrive later
         pc.ontrack = (event) => {
             console.log(SIP_LOG_PREFIX, "Remote track received:", event.track.kind);
             event.streams[0]?.getTracks().forEach(track => {
@@ -193,7 +237,6 @@ class SipClient {
         console.log(SIP_LOG_PREFIX, "Audio setup done — remote tracks:", remoteStream.getTracks().length,
             "| local senders:", pc.getSenders().filter(s => s.track?.kind === 'audio').length);
 
-        // Store local stream reference for mute control
         pc.getSenders().forEach(sender => {
             if (sender.track?.kind === 'audio') {
                 if (!this.localStream) this.localStream = new MediaStream();
@@ -242,17 +285,49 @@ class SipClient {
     async hangup() {
         if (!this.currentSession) return;
 
-        switch (this.currentSession.state) {
-            case SessionState.Initial:
-            case SessionState.Establishing:
-                // For incoming calls (Invitation), reject
-                if ('reject' in this.currentSession) {
-                    await (this.currentSession as Invitation).reject();
-                }
-                break;
-            case SessionState.Established:
-                await this.currentSession.bye();
-                break;
+        try {
+            switch (this.currentSession.state) {
+                case SessionState.Initial:
+                case SessionState.Establishing:
+                    if ('reject' in this.currentSession) {
+                        await (this.currentSession as Invitation).reject();
+                    }
+                    break;
+                case SessionState.Established:
+                    await this.currentSession.bye();
+                    break;
+            }
+        } catch (err) {
+            console.warn(SIP_LOG_PREFIX, "Hangup error (may already be terminated):", err);
+            // Force cleanup even if hangup request fails
+            this.cleanupMedia();
+            this.currentSession = null;
+        }
+    }
+
+    /**
+     * Disconnect SIP client intentionally (e.g., on page unload).
+     */
+    async disconnect() {
+        this.isIntentionalDisconnect = true;
+
+        // Cancel any pending reconnect
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+
+        if (this.currentSession) {
+            try { await this.hangup(); } catch (_) { /* ignore */ }
+        }
+
+        if (this.registerer) {
+            try { await this.registerer.unregister(); } catch (_) { /* ignore */ }
+        }
+
+        if (this.ua) {
+            try { await this.ua.stop(); } catch (_) { /* ignore */ }
+            this.ua = null;
         }
     }
 }
