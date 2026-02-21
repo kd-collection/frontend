@@ -19,19 +19,37 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
     const [duration, setDuration] = useState(0);
     const [mounted, setMounted] = useState(false);
 
+    const isConnected = call?.state && ['up', 'Up', 'Answered', 'Bridged'].includes(call.state);
+
     useEffect(() => {
         setMounted(true);
-        if (call?.state === 'up') {
+        if (isConnected) {
             const timer = setInterval(() => setDuration(prev => prev + 1), 1000);
             return () => clearInterval(timer);
         }
         setDuration(0);
-    }, [call?.state]);
+    }, [isConnected]);
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const getCallStateLabel = (state: string): string => {
+        switch (state.toLowerCase()) {
+            case 'initiated':
+            case 'dialing':
+                return 'Dialing...';
+            case 'ringing':
+                return 'Ringing...';
+            case 'answered':
+            case 'up':
+            case 'bridged':
+                return formatDuration(duration);
+            default:
+                return `${state}...`;
+        }
     };
 
     if (!mounted) return null;
@@ -68,7 +86,7 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
 
                         {/* Avatar Pulse */}
                         <div className="relative">
-                            {call.state !== 'up' && (
+                            {!isConnected && (
                                 <>
                                     <motion.div
                                         animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
@@ -91,8 +109,8 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
                         <div className="text-center space-y-2">
                             <h2 className="text-3xl font-bold tracking-tight">{call.destination}</h2>
                             <p className="text-lg text-white/60 font-medium">
-                                {call.state === 'up' ? formatDuration(duration) : (
-                                    <span className="animate-pulse capitalize">{call.state}...</span>
+                                {isConnected ? formatDuration(duration) : (
+                                    <span className="animate-pulse">{getCallStateLabel(call.state)}</span>
                                 )}
                             </p>
                         </div>

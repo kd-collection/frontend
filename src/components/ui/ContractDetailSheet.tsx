@@ -171,7 +171,25 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                         {/* Footer Actions */}
                         <div className="px-6 py-4 border-t border-border-subtle flex flex-col gap-3 flex-shrink-0 bg-card z-10">
                             {/* Call Action */}
-                            {contract.customer_phone && !currentCall && contract.ccontract_no === "99999999" ? (
+                            {currentCall ? (
+                                /* Active call mini-bar */
+                                <div className="w-full py-3 px-4 rounded-lg bg-emerald-600/10 border border-emerald-500/30 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-sm font-semibold text-emerald-400 capitalize">
+                                            {currentCall.state === 'up' ? 'Connected' : `${currentCall.state}...`}
+                                        </span>
+                                        <span className="text-xs text-text-muted">({currentCall.destination})</span>
+                                    </div>
+                                    <button
+                                        onClick={() => hangupCall(currentCall.id)}
+                                        disabled={isHangingUp}
+                                        className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 transition-colors"
+                                    >
+                                        {isHangingUp ? 'Ending...' : 'Hangup'}
+                                    </button>
+                                </div>
+                            ) : contract.customer_phone ? (
                                 <button
                                     onClick={() => initiateCall({
                                         destination: contract.customer_phone || "",
@@ -180,14 +198,14 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                     })}
                                     disabled={isCalling || sipState !== 'registered'}
                                     className={`w-full py-3 rounded-lg font-semibold shadow-lg transition-all flex items-center justify-center gap-2 ${sipState === 'registered'
-                                            ? 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98]'
-                                            : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5 shadow-none'
+                                        ? 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98]'
+                                        : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5 shadow-none'
                                         }`}
                                 >
                                     {isCalling ? (
                                         <>
                                             <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            Connecting...
+                                            Dialing...
                                         </>
                                     ) : sipState !== 'registered' ? (
                                         <>
@@ -204,7 +222,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                             ) : (
                                 <div className="w-full py-3 rounded-lg bg-gray-700/50 text-gray-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-white/5">
                                     <Phone className="h-4 w-4" />
-                                    {!contract.customer_phone ? 'No Phone Number' : 'Call Customer (Restricted)'}
+                                    No Phone Number
                                 </div>
                             )}
 
