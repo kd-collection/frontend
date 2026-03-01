@@ -21,6 +21,7 @@ interface Props {
 export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit }: Props) {
     const [mounted, setMounted] = useState(false);
     const [showCallConfirm, setShowCallConfirm] = useState(false);
+    const [isCallMinimized, setIsCallMinimized] = useState(false);
     const { initiateCall, hangupCall, isCalling, isHangingUp, currentCall, sipState, isMuted, toggleMute, unlockAudio, localAudioLevel, remoteAudioLevel } = useTelephony();
 
     // Lock body scroll when sheet is open
@@ -196,13 +197,23 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                             <span className="text-xs text-emerald-500/70 font-medium">Remote: {currentCall.destination}</span>
                                         </div>
                                     </div>
-                                    <button
-                                        onClick={() => hangupCall(currentCall.id)}
-                                        disabled={isHangingUp}
-                                        className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 text-sm font-bold hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                                    >
-                                        {isHangingUp ? 'Ending...' : 'END CALL'}
-                                    </button>
+                                    <div className="flex gap-2">
+                                        {isCallMinimized && (
+                                            <button
+                                                onClick={() => setIsCallMinimized(false)}
+                                                className="px-4 py-2 rounded-lg bg-emerald-500/10 text-emerald-500 text-sm font-bold hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
+                                            >
+                                                EXPAND
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => hangupCall(currentCall.id)}
+                                            disabled={isHangingUp}
+                                            className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 text-sm font-bold hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                                        >
+                                            {isHangingUp ? 'Ending...' : 'END CALL'}
+                                        </button>
+                                    </div>
                                 </motion.div>
                             ) : showCallConfirm ? (
                                 <AnimatePresence>
@@ -314,15 +325,18 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                     </motion.div>
 
                     {/* Full Screen Call Overlay */}
-                    <CallOverlay
-                        call={currentCall}
-                        onHangup={hangupCall}
-                        isHangingUp={isHangingUp}
-                        isMuted={isMuted}
-                        onToggleMute={toggleMute}
-                        localAudioLevel={localAudioLevel}
-                        remoteAudioLevel={remoteAudioLevel}
-                    />
+                    {!isCallMinimized && (
+                        <CallOverlay
+                            call={currentCall}
+                            onHangup={hangupCall}
+                            isHangingUp={isHangingUp}
+                            isMuted={isMuted}
+                            onToggleMute={toggleMute}
+                            localAudioLevel={localAudioLevel}
+                            remoteAudioLevel={remoteAudioLevel}
+                            onMinimize={() => setIsCallMinimized(true)}
+                        />
+                    )}
                 </>
             )}
         </AnimatePresence>,

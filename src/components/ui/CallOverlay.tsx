@@ -15,9 +15,10 @@ interface CallOverlayProps {
     onToggleMute: () => void;
     localAudioLevel?: number;
     remoteAudioLevel?: number;
+    onMinimize?: () => void;
 }
 
-export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onToggleMute, localAudioLevel = 0, remoteAudioLevel = 0 }: CallOverlayProps) {
+export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onToggleMute, localAudioLevel = 0, remoteAudioLevel = 0, onMinimize }: CallOverlayProps) {
     const [duration, setDuration] = useState(0);
     const [mounted, setMounted] = useState(false);
 
@@ -29,12 +30,16 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
 
     useEffect(() => {
         setMounted(true);
-        if (isConnected) {
-            const timer = setInterval(() => setDuration(prev => prev + 1), 1000);
+        if (isConnected && call?.startedAt) {
+            // Calculate actual duration based on startedAt so it doesn't reset on unmount
+            const startTime = new Date(call.startedAt).getTime();
+            const timer = setInterval(() => {
+                setDuration(Math.floor((Date.now() - startTime) / 1000));
+            }, 1000);
             return () => clearInterval(timer);
         }
         setDuration(0);
-    }, [isConnected]);
+    }, [isConnected, call?.startedAt]);
 
     const formatDuration = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -82,7 +87,11 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
                 >
                     {/* Header */}
                     <div className="w-full flex justify-between items-start opacity-80">
-                        <button className="p-2 rounded-full active:bg-white/10 transition-colors">
+                        <button
+                            onClick={onMinimize}
+                            title="Minimize Call Window"
+                            className="p-2 rounded-full active:bg-white/10 hover:bg-white/5 transition-colors"
+                        >
                             <span className="sr-only">Minimize</span>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="rotate-90"><path d="M15 18l-6-6 6-6" /></svg>
                         </button>
@@ -92,7 +101,8 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
                                 End-to-end Encrypted
                             </div>
                         </div>
-                        <button className="p-2 rounded-full active:bg-white/10 transition-colors">
+                        <button className="p-2 rounded-full active:bg-white/10 opacity-0 cursor-default">
+                            {/* Hidden spacer to keep middle title centered */}
                             <MoreVertical className="w-5 h-5" />
                         </button>
                     </div>
