@@ -13,13 +13,19 @@ interface CallOverlayProps {
     isHangingUp: boolean;
     isMuted: boolean;
     onToggleMute: () => void;
+    localAudioLevel?: number;
+    remoteAudioLevel?: number;
 }
 
-export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onToggleMute }: CallOverlayProps) {
+export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onToggleMute, localAudioLevel = 0, remoteAudioLevel = 0 }: CallOverlayProps) {
     const [duration, setDuration] = useState(0);
     const [mounted, setMounted] = useState(false);
 
     const isConnected = call?.state && ['up', 'Up', 'Answered', 'Bridged'].includes(call.state);
+
+    // Speaking thresholds — tweak if too sensitive
+    const isRemoteSpeaking = remoteAudioLevel > 0.04;
+    const isLocalSpeaking = !isMuted && localAudioLevel > 0.04;
 
     useEffect(() => {
         setMounted(true);
@@ -94,25 +100,72 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
                     {/* Main Content */}
                     <div className="flex-1 flex flex-col items-center justify-center w-full max-w-sm gap-8 relative">
 
-                        {/* Avatar Pulse */}
-                        <div className="relative">
-                            {!isConnected && (
-                                <>
+                        {/* Remote party avatar with speaking ring */}
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="relative flex items-center justify-center">
+                                {/* Idle pulse when not yet connected */}
+                                {!isConnected && (
+                                    <>
+                                        <motion.div
+                                            animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
+                                            transition={{ duration: 2, repeat: Infinity }}
+                                            className="absolute inset-0 bg-white/10 rounded-full"
+                                        />
+                                        <motion.div
+                                            animate={{ scale: [1, 1.8, 1], opacity: [0.15, 0, 0.15] }}
+                                            transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                                            className="absolute inset-0 bg-white/10 rounded-full"
+                                        />
+                                    </>
+                                )}
+
+                                {/* Speaking ring — remote party */}
+                                {isConnected && (
                                     <motion.div
-                                        animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0, 0.3] }}
-                                        transition={{ duration: 2, repeat: Infinity }}
-                                        className="absolute inset-0 bg-white/10 rounded-full"
+                                        className="absolute -inset-2 rounded-full border-2 border-emerald-400"
+                                        animate={isRemoteSpeaking
+                                            ? { opacity: [0.6, 1, 0.6], scale: [1, 1.06, 1] }
+                                            : { opacity: 0, scale: 1 }
+                                        }
+                                        transition={{ duration: 0.4, repeat: isRemoteSpeaking ? Infinity : 0 }}
                                     />
-                                    <motion.div
-                                        animate={{ scale: [1, 1.8, 1], opacity: [0.15, 0, 0.15] }}
-                                        transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                                        className="absolute inset-0 bg-white/10 rounded-full"
-                                    />
-                                </>
-                            )}
-                            <div className="w-32 h-32 rounded-full bg-gradient-to-b from-slate-700 to-slate-800 flex items-center justify-center shadow-2xl relative z-10 border-4 border-[#0f1c2e]">
-                                <User className="w-12 h-12 text-white/50" />
+                                )}
+
+                                <div className="w-32 h-32 rounded-full bg-gradient-to-b from-slate-700 to-slate-800 flex items-center justify-center shadow-2xl relative z-10 border-4 border-[#0f1c2e]">
+                                    <User className="w-12 h-12 text-white/50" />
+                                </div>
                             </div>
+
+                            {/* Speaking label */}
+                            {isConnected && (
+                                <div className="h-5 flex items-center justify-center">
+                                    <AnimatePresence mode="wait">
+                                        {isRemoteSpeaking ? (
+                                            <motion.div
+                                                key="remote-speaking"
+                                                initial={{ opacity: 0, y: 4 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -4 }}
+                                                className="flex items-center gap-1.5 text-xs font-medium text-emerald-400"
+                                            >
+                                                <AudioBars active />
+                                                Customer is speaking
+                                            </motion.div>
+                                        ) : isLocalSpeaking ? (
+                                            <motion.div
+                                                key="local-speaking"
+                                                initial={{ opacity: 0, y: 4 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -4 }}
+                                                className="flex items-center gap-1.5 text-xs font-medium text-sky-400"
+                                            >
+                                                <AudioBars active color="sky" />
+                                                You are speaking
+                                            </motion.div>
+                                        ) : null}
+                                    </AnimatePresence>
+                                </div>
+                            )}
                         </div>
 
                         {/* Info */}
@@ -134,6 +187,7 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
                                 label={isMuted ? "Unmute" : "Mute"}
                                 active={isMuted}
                                 onClick={onToggleMute}
+                                speaking={isLocalSpeaking}
                             />
                             <ControlButton
                                 icon={Volume2}
@@ -159,25 +213,56 @@ export default function CallOverlay({ call, onHangup, isHangingUp, isMuted, onTo
     );
 }
 
-function ControlButton({ icon: Icon, label, active = false, onClick, disabled = false }: {
+/** Animated audio bars (like Discord speaking indicator) */
+function AudioBars({ active, color = "emerald" }: { active: boolean; color?: "emerald" | "sky" }) {
+    const barColor = color === "sky" ? "bg-sky-400" : "bg-emerald-400";
+    return (
+        <span className="flex items-end gap-[2px] h-3">
+            {[0.6, 1, 0.7].map((delay, i) => (
+                <motion.span
+                    key={i}
+                    className={cn("w-[3px] rounded-full", barColor)}
+                    animate={active
+                        ? { height: ["4px", "12px", "4px"] }
+                        : { height: "4px" }
+                    }
+                    transition={{ duration: 0.5, repeat: active ? Infinity : 0, delay: i * 0.15 * delay }}
+                />
+            ))}
+        </span>
+    );
+}
+
+function ControlButton({ icon: Icon, label, active = false, onClick, disabled = false, speaking = false }: {
     icon: React.ComponentType<any>;
     label?: string;
     active?: boolean;
     onClick?: () => void;
     disabled?: boolean;
+    speaking?: boolean;
 }) {
     return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={cn(
-                "flex flex-col items-center justify-center gap-2 w-16 h-16 rounded-2xl transition-all",
-                active ? "bg-white text-black" : "bg-white/5 text-white hover:bg-white/10",
-                disabled && "opacity-30 cursor-not-allowed"
+        <div className="relative flex flex-col items-center gap-2">
+            {/* Speaking ring on mic button */}
+            {speaking && (
+                <motion.div
+                    className="absolute inset-0 rounded-2xl border-2 border-sky-400"
+                    animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.08, 1] }}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                />
             )}
-        >
-            <Icon className="w-5 h-5" />
-            {label && <span className="text-[10px] font-medium">{label}</span>}
-        </button>
+            <button
+                onClick={onClick}
+                disabled={disabled}
+                className={cn(
+                    "flex flex-col items-center justify-center gap-2 w-16 h-16 rounded-2xl transition-all",
+                    active ? "bg-white text-black" : "bg-white/5 text-white hover:bg-white/10",
+                    disabled && "opacity-30 cursor-not-allowed"
+                )}
+            >
+                <Icon className="w-5 h-5" />
+                {label && <span className="text-[10px] font-medium">{label}</span>}
+            </button>
+        </div>
     );
 }

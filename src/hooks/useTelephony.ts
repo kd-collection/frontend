@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { sipClient } from "@/lib/sip";
 import { telephonySocket, CallEvent } from "@/lib/telephony-socket";
 import { SessionState } from "sip.js";
+import { sounds } from "@/lib/sounds";
 
 export type SipState = "disconnected" | "connecting" | "connected" | "registered" | "failed" | "reconnecting";
 
@@ -20,10 +21,13 @@ export function useTelephony() {
     const [isMuted, setIsMuted] = useState(false);
     const [sipState, setSipState] = useState<SipState>(sipClient.getStatus() as SipState);
     const [socketConnected, setSocketConnected] = useState(false);
+    const [localAudioLevel, setLocalAudioLevel] = useState(0);
+    const [remoteAudioLevel, setRemoteAudioLevel] = useState(0);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const callEstablishedRef = useRef(false);
     const callTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastStateChangeRef = useRef<number>(0);
+    const rafRef = useRef<number | null>(null);
 
     /**
      * Clear any pending call timeout watchdog.
@@ -70,17 +74,28 @@ export function useTelephony() {
 
     // Create and append audio element to DOM once
     useEffect(() => {
-        const audio = document.createElement('audio');
-        audio.autoplay = true;
-        audio.style.display = 'none';
-        document.body.appendChild(audio);
-        audioRef.current = audio;
+        const setupAudio = () => {
+            if (audioRef.current) return;
+            const audio = document.createElement('audio');
+            // playsinline is critical for iOS Safari
+            audio.setAttribute('playsinline', 'true');
+            audio.autoplay = true;
+            // controls required by some browsers to enable autoplay, we hide it via CSS
+            audio.controls = true;
+            audio.style.display = 'none';
+            // Allow JS to control volume programmatically without muting initially
+            audio.muted = false;
+            audio.volume = 1.0;
 
-        sipClient.setAudioElement(audio);
+            document.body.appendChild(audio);
+            audioRef.current = audio;
+            sipClient.setAudioElement(audio);
 
-        // Remove explicit setSipState("connecting") here so we don't overwrite current active state
-        // and respect whatever sipClient currently has:
-        setSipState(sipClient.getStatus() as SipState);
+            // respect whatever sipClient currently has:
+            setSipState(sipClient.getStatus() as SipState);
+        };
+
+        setupAudio();
 
         // SIP connection status
         sipClient.onStatusChange = (status) => {
@@ -102,11 +117,22 @@ export function useTelephony() {
             toast(`SIP reconnecting... (${attempt}/${maxAttempts})`, "info");
         };
 
+        // ICE connection state — critical for diagnosing audio issues
+        sipClient.onIceStateChange = (state) => {
+            console.log("[Telephony] ICE state:", state);
+            if (state === 'failed') {
+                toast("Media connection failed — audio cannot flow. Check network/TURN server.", "error");
+            } else if (state === 'disconnected') {
+                toast("Media connection interrupted — attempting recovery...", "info");
+            }
+        };
+
         // When Asterisk dials back to us (after customer picks up)
         sipClient.onIncomingCall = (from: string) => {
             console.log("[Telephony] Incoming SIP call from Asterisk:", from);
             toast("Customer connected — call bridging...", "info");
             clearCallTimeout();
+            sounds.stop();
         };
 
         // SIP session state changes (established, terminated, etc.)
@@ -114,12 +140,14 @@ export function useTelephony() {
             if (state === SessionState.Established) {
                 callEstablishedRef.current = true;
                 clearCallTimeout();
+                sounds.stop();
                 toast("🔊 Call connected!", "success");
                 setCurrentCall(prev => prev ? { ...prev, state: 'up' } : null);
             }
 
             if (state === SessionState.Terminated) {
                 clearCallTimeout();
+                sounds.stop();
                 if (callEstablishedRef.current) {
                     toast("Call ended", "info");
                 } else {
@@ -146,17 +174,21 @@ export function useTelephony() {
             // Handle side effects OUTSIDE of setCurrentCall to avoid setState-during-render
             switch (event.type) {
                 case 'RINGING':
+                    sounds.playRinging();
                     toast("📞 Customer's phone is ringing...", "info");
                     startCallTimeout(CALL_TIMEOUT_SECONDS, "ringing");
                     break;
                 case 'ANSWERED':
+                    sounds.stop();
                     toast("✅ Customer answered!", "success");
                     clearCallTimeout();
                     break;
                 case 'BRIDGED':
+                    sounds.stop();
                     clearCallTimeout();
                     break;
                 case 'ENDED':
+                    sounds.stop();
                     clearCallTimeout();
                     toast(`Call ended — ${event.data?.duration ? `Duration: ${Math.floor(event.data.duration / 60)}m ${event.data.duration % 60}s` : 'completed'}`, "info");
                     telephonySocket.unsubscribeFromCall();
@@ -168,21 +200,25 @@ export function useTelephony() {
                     }, 2000);
                     break;
                 case 'BUSY':
+                    sounds.stop();
                     clearCallTimeout();
                     toast("📵 Number is busy", "error");
                     telephonySocket.unsubscribeFromCall();
                     break;
                 case 'NO_ANSWER':
+                    sounds.stop();
                     clearCallTimeout();
                     toast("⏰ No answer — customer didn't pick up", "error");
                     telephonySocket.unsubscribeFromCall();
                     break;
                 case 'FAILED':
+                    sounds.stop();
                     clearCallTimeout();
                     toast(`❌ Call failed: ${event.data?.reason || 'Unknown error'}`, "error");
                     telephonySocket.unsubscribeFromCall();
                     break;
                 case 'CANCELED':
+                    sounds.stop();
                     clearCallTimeout();
                     toast("Call canceled", "info");
                     telephonySocket.unsubscribeFromCall();
@@ -223,9 +259,11 @@ export function useTelephony() {
 
         return () => {
             clearCallTimeout();
-            if (audio.parentNode) {
-                audio.srcObject = null;
-                audio.parentNode.removeChild(audio);
+            sounds.stop();
+            if (audioRef.current?.parentNode) {
+                audioRef.current.srcObject = null;
+                audioRef.current.parentNode.removeChild(audioRef.current);
+                audioRef.current = null;
             }
             telephonySocket.unsubscribeFromCall();
         };
@@ -261,6 +299,12 @@ export function useTelephony() {
      */
     const callMutation = useMutation({
         mutationFn: async ({ destination, agentId, callerId }: { destination: string; agentId?: string; callerId?: string }) => {
+            // Unlock audio element FIRST — must happen before any await (user gesture context expires after first await)
+            // Without this, browser autoplay policy blocks audio.play() later in setupRemoteAudio()
+            if (audioRef.current) {
+                audioRef.current.play().catch(() => { });
+            }
+
             // Double-click prevention: don't allow if there's already an active call
             if (currentCall) {
                 throw new Error("There's already an active call. Please hang up first.");
@@ -313,6 +357,8 @@ export function useTelephony() {
             // Step 3: Start dial timeout watchdog
             startCallTimeout(DIAL_TIMEOUT_SECONDS, "dialing");
 
+            sounds.playDialing();
+
             return response;
         },
         onSuccess: (data) => {
@@ -331,6 +377,7 @@ export function useTelephony() {
         },
         onError: (err) => {
             clearCallTimeout();
+            sounds.stop();
             toast(err.message || "Failed to initiate call", "error");
         }
     });
@@ -362,10 +409,12 @@ export function useTelephony() {
             return { success: true };
         },
         onSuccess: () => {
+            sounds.stop();
             setCurrentCall(null);
             setIsMuted(false);
         },
         onError: () => {
+            sounds.stop();
             // Force cleanup even on error
             setCurrentCall(null);
             setIsMuted(false);
@@ -378,6 +427,43 @@ export function useTelephony() {
         setIsMuted(newMuted);
     }, [isMuted]);
 
+    /**
+     * Unlock audio — MUST be called synchronously inside a button click handler
+     * (before any await) so the browser's autoplay policy allows audio.play() later.
+     * Also initialises the AudioContext used by sounds (ringing, dialing) and analysers.
+     */
+    const unlockAudio = useCallback(() => {
+        if (audioRef.current) audioRef.current.play().catch(() => {});
+        sounds.init();
+        sipClient.initAudioContext();
+    }, []);
+
+    // Poll audio levels via requestAnimationFrame while call is active
+    useEffect(() => {
+        const isActive = currentCall?.state &&
+            ['up', 'Up', 'Answered', 'Bridged'].includes(currentCall.state);
+
+        if (!isActive) {
+            setLocalAudioLevel(0);
+            setRemoteAudioLevel(0);
+            return;
+        }
+
+        const poll = () => {
+            setLocalAudioLevel(sipClient.getAudioLevel('local'));
+            setRemoteAudioLevel(sipClient.getAudioLevel('remote'));
+            rafRef.current = requestAnimationFrame(poll);
+        };
+        rafRef.current = requestAnimationFrame(poll);
+
+        return () => {
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(rafRef.current);
+                rafRef.current = null;
+            }
+        };
+    }, [currentCall?.state]);
+
     return {
         status,
         sipState,
@@ -388,6 +474,9 @@ export function useTelephony() {
         hangupCall: hangupMutation.mutate,
         isHangingUp: hangupMutation.isPending,
         isMuted,
-        toggleMute
+        toggleMute,
+        unlockAudio,
+        localAudioLevel,
+        remoteAudioLevel,
     };
 }

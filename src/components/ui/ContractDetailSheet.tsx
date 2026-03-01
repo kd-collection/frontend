@@ -20,7 +20,8 @@ interface Props {
 
 export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit }: Props) {
     const [mounted, setMounted] = useState(false);
-    const { initiateCall, hangupCall, isCalling, isHangingUp, currentCall, sipState, isMuted, toggleMute } = useTelephony();
+    const [showCallConfirm, setShowCallConfirm] = useState(false);
+    const { initiateCall, hangupCall, isCalling, isHangingUp, currentCall, sipState, isMuted, toggleMute, unlockAudio, localAudioLevel, remoteAudioLevel } = useTelephony();
 
     // Lock body scroll when sheet is open
     useEffect(() => {
@@ -178,61 +179,115 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                             {/* Call Action */}
                             {currentCall ? (
                                 /* Active call mini-bar */
-                                <div className="w-full py-3 px-4 rounded-lg bg-emerald-600/10 border border-emerald-500/30 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                                        <span className="text-sm font-semibold text-emerald-400 capitalize">
-                                            {currentCall.state === 'up' ? 'Connected' : `${currentCall.state}...`}
-                                        </span>
-                                        <span className="text-xs text-text-muted">({currentCall.destination})</span>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="w-full py-3 px-4 rounded-xl bg-emerald-600/10 border border-emerald-500/30 flex items-center justify-between shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative flex h-3 w-3">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-semibold text-emerald-400 capitalize flex items-center gap-2">
+                                                {currentCall.state === 'up' ? 'Voice Call Connected' : `${currentCall.state}...`}
+                                            </span>
+                                            <span className="text-xs text-emerald-500/70 font-medium">Remote: {currentCall.destination}</span>
+                                        </div>
                                     </div>
                                     <button
                                         onClick={() => hangupCall(currentCall.id)}
                                         disabled={isHangingUp}
-                                        className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/30 transition-colors"
+                                        className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 text-sm font-bold hover:bg-red-500 hover:text-white transition-all shadow-sm"
                                     >
-                                        {isHangingUp ? 'Ending...' : 'Hangup'}
+                                        {isHangingUp ? 'Ending...' : 'END CALL'}
                                     </button>
-                                </div>
-                            ) : (contract.contractNo || contract.ccontract_no) !== "99999999" ? (
-                                <div className="w-full py-3 rounded-lg bg-gray-700/50 text-gray-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-white/5 shadow-inner">
-                                    <AlertCircle className="h-4 w-4" />
-                                    Calls Disabled (Testing Mode)
-                                </div>
-                            ) : contract.customer_phone ? (
+                                </motion.div>
+                            ) : showCallConfirm ? (
+                                <AnimatePresence>
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="w-full p-4 rounded-xl bg-slate-900 border border-slate-800 shadow-inner flex flex-col gap-3"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <div className="p-2 bg-emerald-500/20 rounded-full text-emerald-500 mt-0.5">
+                                                <Phone className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-slate-200">Start Voice Call?</h4>
+                                                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                                                    This will securely connect your microphone via WebRTC to Asterisk and call <strong className="text-slate-300">{contract?.customer_phone}</strong>.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 mt-2">
+                                            <button
+                                                onClick={() => setShowCallConfirm(false)}
+                                                className="flex-1 py-2 rounded-lg bg-slate-800 text-slate-300 text-sm font-medium hover:bg-slate-700 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    // Unlock audio + AudioContext FIRST (synchronous, in user gesture context)
+                                                    // This is the only safe window to enable autoplay for both
+                                                    // the remote audio element AND the sounds AudioContext
+                                                    unlockAudio();
+                                                    initiateCall({
+                                                        destination: contract?.customer_phone || "",
+                                                        agentId: "agent1",
+                                                        callerId: "101"
+                                                    });
+                                                    setShowCallConfirm(false);
+                                                }}
+                                                disabled={isCalling || sipState !== 'registered'}
+                                                className="flex-1 py-2 rounded-lg bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Call Now
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                </AnimatePresence>
+                            ) : contract?.customer_phone ? (
                                 <button
-                                    onClick={() => initiateCall({
-                                        destination: contract.customer_phone || "",
-                                        agentId: "agent1",
-                                        callerId: "9999"
-                                    })}
+                                    onClick={() => setShowCallConfirm(true)}
                                     disabled={isCalling || sipState !== 'registered'}
-                                    className={`w-full py-3 rounded-lg font-semibold shadow-lg transition-all flex items-center justify-center gap-2 ${sipState === 'registered'
-                                        ? 'bg-emerald-600 text-white shadow-emerald-600/20 hover:bg-emerald-700 active:scale-[0.98]'
-                                        : 'bg-gray-700/50 text-gray-400 cursor-not-allowed border border-white/5 shadow-none'
+                                    className={`w-full py-3.5 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-3 group relative overflow-hidden ${sipState === 'registered'
+                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98]'
+                                        : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 shadow-none'
                                         }`}
                                 >
+                                    {sipState === 'registered' && (
+                                        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
+                                    )}
+
                                     {isCalling ? (
                                         <>
-                                            <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                             Dialing...
                                         </>
                                     ) : sipState !== 'registered' ? (
                                         <>
-                                            <Phone className="h-4 w-4" />
-                                            {sipState === 'failed' ? 'SIP Auth Failed' : sipState === 'reconnecting' ? 'SIP Reconnecting...' : sipState === 'disconnected' ? 'SIP Disconnected' : 'Connecting SIP...'}
+                                            <Phone className="h-5 w-5" />
+                                            {sipState === 'failed' ? 'SIP Auth Failed' : sipState === 'reconnecting' ? 'SIP Reconnecting...' : sipState === 'disconnected' ? 'SIP Offline' : 'Connecting SIP...'}
                                         </>
                                     ) : (
                                         <>
-                                            <Phone className="h-4 w-4" />
+                                            <div className="rounded-full bg-white/20 p-1 group-hover:bg-white/30 transition-colors">
+                                                <Phone className="h-4 w-4 text-white" />
+                                            </div>
                                             Call Customer ({contract.customer_phone})
                                         </>
                                     )}
                                 </button>
                             ) : (
-                                <div className="w-full py-3 rounded-lg bg-gray-700/50 text-gray-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-white/5">
-                                    <Phone className="h-4 w-4" />
-                                    No Phone Number
+                                <div className="w-full py-3.5 rounded-xl bg-slate-800/50 text-slate-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-slate-700/50">
+                                    <AlertCircle className="h-5 w-5" />
+                                    No Phone Number Available
                                 </div>
                             )}
 
@@ -259,6 +314,8 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                         isHangingUp={isHangingUp}
                         isMuted={isMuted}
                         onToggleMute={toggleMute}
+                        localAudioLevel={localAudioLevel}
+                        remoteAudioLevel={remoteAudioLevel}
                     />
                 </>
             )}

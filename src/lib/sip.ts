@@ -18,7 +18,11 @@ class SipClient {
     private registerer: Registerer | null = null;
     private currentSession: Session | null = null;
     private remoteAudio: HTMLAudioElement | null = null;
-    private localStream: MediaStream | null = null;
+
+    // Audio level monitoring
+    private audioCtx: AudioContext | null = null;
+    private localAnalyser: AnalyserNode | null = null;
+    private remoteAnalyser: AnalyserNode | null = null;
 
     // Reconnection state
     private reconnectAttempts = 0;
@@ -31,12 +35,74 @@ class SipClient {
     public onCallStateChange: ((state: SessionState) => void) | null = null;
     public onIncomingCall: ((from: string) => void) | null = null;
     public onReconnecting: ((attempt: number, maxAttempts: number) => void) | null = null;
+    public onIceStateChange: ((state: RTCIceConnectionState) => void) | null = null;
 
     /**
      * Set the audio element used for remote audio playback.
      */
     setAudioElement(audio: HTMLAudioElement) {
         this.remoteAudio = audio;
+    }
+
+    /**
+     * Initialize AudioContext — must be called within a user gesture to avoid autoplay block.
+     * Also enables the audio analysers used for speaking detection.
+     */
+    initAudioContext() {
+        if (typeof window === 'undefined') return;
+        if (this.audioCtx && this.audioCtx.state !== 'closed') {
+            this.audioCtx.resume().catch(() => {});
+            return;
+        }
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return;
+        this.audioCtx = new Ctx();
+    }
+
+    /**
+     * Connect local mic and remote stream to AnalyserNodes for audio level detection.
+     */
+    private setupAudioAnalysers(remoteStream: MediaStream, pc: RTCPeerConnection) {
+        if (!this.audioCtx || this.audioCtx.state === 'closed') return;
+
+        // Remote analyser
+        try {
+            const remoteSource = this.audioCtx.createMediaStreamSource(remoteStream);
+            this.remoteAnalyser = this.audioCtx.createAnalyser();
+            this.remoteAnalyser.fftSize = 256;
+            remoteSource.connect(this.remoteAnalyser);
+        } catch (e) {
+            console.warn(SIP_LOG_PREFIX, "Remote analyser setup failed:", e);
+        }
+
+        // Local analyser — get mic track from the RTC sender
+        try {
+            const audioSender = pc.getSenders().find(s => s.track?.kind === 'audio');
+            if (audioSender?.track) {
+                const localStream = new MediaStream([audioSender.track]);
+                const localSource = this.audioCtx.createMediaStreamSource(localStream);
+                this.localAnalyser = this.audioCtx.createAnalyser();
+                this.localAnalyser.fftSize = 256;
+                localSource.connect(this.localAnalyser);
+            }
+        } catch (e) {
+            console.warn(SIP_LOG_PREFIX, "Local analyser setup failed:", e);
+        }
+    }
+
+    /**
+     * Get current audio level (0–1) for local mic or remote audio.
+     * Creates a fresh Uint8Array each call to avoid shared-buffer type issues.
+     * Returns 0 if analyser is not set up.
+     */
+    getAudioLevel(type: 'local' | 'remote'): number {
+        const analyser = type === 'local' ? this.localAnalyser : this.remoteAnalyser;
+        if (!analyser) return 0;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        let sum = 0;
+        for (let i = 0; i < data.length; i++) sum += data[i];
+        return sum / (data.length * 255);
     }
 
     /**
@@ -193,16 +259,9 @@ class SipClient {
         const callerUri = invitation.remoteIdentity?.uri?.toString() || "unknown";
         this.onIncomingCall?.(callerUri);
 
-        console.log(SIP_LOG_PREFIX, "Auto-answering incoming call...");
-
-        invitation.accept({
-            sessionDescriptionHandlerOptions: {
-                constraints: { audio: true, video: false }
-            }
-        });
-
         this.currentSession = invitation;
 
+        // Register listener BEFORE accept() to avoid missing early state transitions
         invitation.stateChange.addListener((state: SessionState) => {
             console.log(SIP_LOG_PREFIX, "Call state:", state);
             this.onCallStateChange?.(state);
@@ -216,6 +275,74 @@ class SipClient {
                 console.log(SIP_LOG_PREFIX, "📴 Call ended.");
                 this.cleanupMedia();
                 this.currentSession = null;
+            }
+        });
+
+        console.log(SIP_LOG_PREFIX, "Auto-answering incoming call...");
+
+        invitation.accept({
+            sessionDescriptionHandlerOptions: {
+                constraints: { audio: true, video: false }
+            }
+        }).then(() => {
+            // After accept succeeds, monitor ICE connection state for media connectivity
+            this.monitorIceState();
+        }).catch((err) => {
+            console.error(SIP_LOG_PREFIX, "Failed to accept call (getUserMedia may have failed):", err);
+            this.onCallStateChange?.(SessionState.Terminated);
+            this.cleanupMedia();
+            this.currentSession = null;
+        });
+    }
+
+    /**
+     * Monitor ICE connection state on the RTCPeerConnection.
+     * ICE "connected"/"completed" = media can flow.
+     * ICE "failed" = media CANNOT flow (TURN/STUN issue, NAT traversal failed).
+     */
+    private monitorIceState() {
+        if (!this.currentSession?.sessionDescriptionHandler) return;
+
+        const sdh = this.currentSession.sessionDescriptionHandler as any;
+        const pc = sdh.peerConnection as RTCPeerConnection | undefined;
+        if (!pc) return;
+
+        const logIce = (state: RTCIceConnectionState) => {
+            switch (state) {
+                case 'checking':
+                    console.log(SIP_LOG_PREFIX, "🔍 ICE checking — finding media path...");
+                    break;
+                case 'connected':
+                    console.log(SIP_LOG_PREFIX, "✅ ICE connected — media CAN flow!");
+                    break;
+                case 'completed':
+                    console.log(SIP_LOG_PREFIX, "✅ ICE completed — optimal media path found");
+                    break;
+                case 'failed':
+                    console.error(SIP_LOG_PREFIX, "❌ ICE FAILED — media CANNOT flow! Check TURN/STUN server.");
+                    break;
+                case 'disconnected':
+                    console.warn(SIP_LOG_PREFIX, "⚠️ ICE disconnected — media temporarily interrupted");
+                    break;
+                case 'closed':
+                    console.log(SIP_LOG_PREFIX, "ICE closed");
+                    break;
+            }
+            this.onIceStateChange?.(state);
+        };
+
+        // Log current state
+        logIce(pc.iceConnectionState);
+
+        // Monitor changes
+        pc.addEventListener('iceconnectionstatechange', () => {
+            logIce(pc.iceConnectionState);
+        });
+
+        // Log ICE candidates for debugging connectivity
+        pc.addEventListener('icecandidate', (event) => {
+            if (event.candidate) {
+                console.log(SIP_LOG_PREFIX, "ICE candidate:", event.candidate.type, event.candidate.protocol, event.candidate.address);
             }
         });
     }
@@ -233,40 +360,80 @@ class SipClient {
             return;
         }
 
+        // Log ICE state at audio setup time
+        console.log(SIP_LOG_PREFIX, "ICE state at audio setup:", pc.iceConnectionState);
+        console.log(SIP_LOG_PREFIX, "Connection state:", pc.connectionState);
+
         const remoteStream = new MediaStream();
 
+        // Add tracks already received during ICE negotiation (before Established fires)
         pc.getReceivers().forEach(receiver => {
-            if (receiver.track) remoteStream.addTrack(receiver.track);
-        });
-
-        pc.ontrack = (event) => {
-            console.log(SIP_LOG_PREFIX, "Remote track received:", event.track.kind);
-            event.streams[0]?.getTracks().forEach(track => {
-                if (!remoteStream.getTrackById(track.id)) {
-                    remoteStream.addTrack(track);
-                }
-            });
-        };
-
-        this.remoteAudio.srcObject = remoteStream;
-        this.remoteAudio.play().catch(err => console.error(SIP_LOG_PREFIX, "Audio play failed:", err));
-
-        console.log(SIP_LOG_PREFIX, "Audio setup done — remote tracks:", remoteStream.getTracks().length,
-            "| local senders:", pc.getSenders().filter(s => s.track?.kind === 'audio').length);
-
-        pc.getSenders().forEach(sender => {
-            if (sender.track?.kind === 'audio') {
-                if (!this.localStream) this.localStream = new MediaStream();
-                this.localStream.addTrack(sender.track);
+            if (receiver.track) {
+                console.log(SIP_LOG_PREFIX, "Receiver track:", receiver.track.kind,
+                    "| enabled:", receiver.track.enabled,
+                    "| muted:", receiver.track.muted,
+                    "| readyState:", receiver.track.readyState);
+                remoteStream.addTrack(receiver.track);
             }
         });
+
+        // Log local sender tracks (our microphone → Asterisk)
+        pc.getSenders().forEach(sender => {
+            if (sender.track) {
+                console.log(SIP_LOG_PREFIX, "Sender track:", sender.track.kind,
+                    "| enabled:", sender.track.enabled,
+                    "| muted:", sender.track.muted,
+                    "| readyState:", sender.track.readyState);
+            }
+        });
+
+        // Listen for any late-arriving tracks using addEventListener (not ontrack assignment)
+        // Also use event.track directly — event.streams[0] can be undefined in some browsers
+        pc.addEventListener('track', (event) => {
+            console.log(SIP_LOG_PREFIX, "Remote track received:", event.track.kind,
+                "| enabled:", event.track.enabled, "| readyState:", event.track.readyState);
+            if (!remoteStream.getTrackById(event.track.id)) {
+                remoteStream.addTrack(event.track);
+            }
+            // Re-assign srcObject when new tracks arrive to ensure audio element picks them up
+            if (this.remoteAudio && this.remoteAudio.srcObject !== remoteStream) {
+                this.remoteAudio.srcObject = remoteStream;
+            }
+        });
+
+        this.remoteAudio.srcObject = remoteStream;
+
+        // Ensure volume is up
+        this.remoteAudio.volume = 1.0;
+        this.remoteAudio.muted = false;
+
+        this.remoteAudio.play().then(() => {
+            console.log(SIP_LOG_PREFIX, "Audio element playing ✅ | tracks in stream:", remoteStream.getTracks().length);
+        }).catch(err => {
+            console.error(SIP_LOG_PREFIX, "Audio play FAILED (autoplay policy?):", err);
+            // Fallback: try to use existing audioCtx to resume
+            if (this.audioCtx) {
+                this.audioCtx.resume().then(() => {
+                    this.remoteAudio?.play().catch(e =>
+                        console.error(SIP_LOG_PREFIX, "Audio play still failed after context resume:", e));
+                });
+            }
+        });
+
+        console.log(SIP_LOG_PREFIX, "Audio setup done — remote tracks:", remoteStream.getTracks().length,
+            "| local senders:", pc.getSenders().filter(s => s.track?.kind === 'audio').length,
+            "| ICE:", pc.iceConnectionState);
+
+        // Hook up audio level analysers for speaking detection
+        this.setupAudioAnalysers(remoteStream, pc);
     }
 
     private cleanupMedia() {
         if (this.remoteAudio) {
             this.remoteAudio.srcObject = null;
         }
-        this.localStream = null;
+        this.localAnalyser = null;
+        this.remoteAnalyser = null;
     }
 
     setMute(muted: boolean) {
