@@ -51,7 +51,7 @@ class SipClient {
     initAudioContext() {
         if (typeof window === 'undefined') return;
         if (this.audioCtx && this.audioCtx.state !== 'closed') {
-            this.audioCtx.resume().catch(() => {});
+            this.audioCtx.resume().catch(() => { });
             return;
         }
         const Ctx = window.AudioContext || (window as any).webkitAudioContext;
@@ -148,6 +148,9 @@ class SipClient {
             uri,
             transportOptions: {
                 server: WEBSOCKET_URL,
+                keepAliveInterval: 25,      // Send CRLF ping every 25s (Nginx idle timeout is ~60s)
+                keepAliveDebounce: 10,      // Skip ping if there was recent traffic
+                connectionTimeout: 10,      // Timeout for initial connection
             },
             authorizationUsername: USERNAME,
             authorizationPassword: PASSWORD,

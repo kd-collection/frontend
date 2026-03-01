@@ -14,6 +14,12 @@ const CALL_TIMEOUT_SECONDS = 90;
 // Timeout for initial dialing phase (before RINGING)
 // Asterisk needs time to connect to SIP trunk → dial customer → get RINGING signal
 const DIAL_TIMEOUT_SECONDS = 45;
+// Cooldown after a call ends before allowing a new call
+// Asterisk teardown is usually < 1s, but we keep a short safety window
+const CALL_COOLDOWN_MS = 2000;
+// Max retries when polling extension status after cooldown
+const EXT_POLL_MAX_RETRIES = 5;
+const EXT_POLL_INTERVAL_MS = 1000;
 
 export function useTelephony() {
     const { toast } = useToast();
@@ -28,6 +34,7 @@ export function useTelephony() {
     const callTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastStateChangeRef = useRef<number>(0);
     const rafRef = useRef<number | null>(null);
+    const lastCallEndedRef = useRef<number>(0);
 
     /**
      * Clear any pending call timeout watchdog.
@@ -71,6 +78,33 @@ export function useTelephony() {
             callEstablishedRef.current = false;
         }, seconds * 1000);
     }, [clearCallTimeout, toast]);
+
+    /**
+     * Poll GET /api/v1/status until extension is "online" (not "in use").
+     * Per telephony team: extension transitions back to online in < 1s normally.
+     * Max retries: 5 attempts × 1s interval = 5s worst case.
+     */
+    const waitForExtensionReady = useCallback(async (extensionId: string): Promise<boolean> => {
+        for (let i = 0; i < EXT_POLL_MAX_RETRIES; i++) {
+            try {
+                const status = await api.getTelephonyStatus();
+                if (status.success && status.data) {
+                    const ext = status.data.all_endpoints?.find(
+                        (ep) => ep.resource === extensionId
+                    );
+                    if (!ext || ext.state === 'online') {
+                        return true; // Extension is ready (or not found = assume ready)
+                    }
+                    console.log(`[Telephony] Extension ${extensionId} is "${ext.state}", waiting... (${i + 1}/${EXT_POLL_MAX_RETRIES})`);
+                }
+            } catch {
+                // Network error — assume ready, let the call attempt handle it
+                return true;
+            }
+            await new Promise(r => setTimeout(r, EXT_POLL_INTERVAL_MS));
+        }
+        return false; // Still busy after max retries
+    }, []);
 
     // Create and append audio element to DOM once
     useEffect(() => {
@@ -192,6 +226,7 @@ export function useTelephony() {
                     clearCallTimeout();
                     toast(`Call ended — ${event.data?.duration ? `Duration: ${Math.floor(event.data.duration / 60)}m ${event.data.duration % 60}s` : 'completed'}`, "info");
                     telephonySocket.unsubscribeFromCall();
+                    lastCallEndedRef.current = Date.now();
                     // Auto-clear call UI after a short delay so user sees "Call Ended" briefly
                     setTimeout(() => {
                         setCurrentCall(null);
@@ -310,6 +345,17 @@ export function useTelephony() {
                 throw new Error("There's already an active call. Please hang up first.");
             }
 
+            // Cooldown: prevent rapid re-calling — Asterisk needs time to clean up
+            const timeSinceLastCall = Date.now() - lastCallEndedRef.current;
+            if (lastCallEndedRef.current > 0 && timeSinceLastCall < CALL_COOLDOWN_MS) {
+                // Instead of just throwing, poll extension status to see if Asterisk is ready
+                const extId = agentId || process.env.NEXT_PUBLIC_SIP_USERNAME || '101';
+                const ready = await waitForExtensionReady(extId);
+                if (!ready) {
+                    throw new Error('Extension still busy. Please wait a moment before calling again.');
+                }
+            }
+
             if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
                 return { success: true, data: { id: 'mock', destination, callerId: 'mock', state: 'ringing' } as CallSession };
             }
@@ -318,11 +364,22 @@ export function useTelephony() {
                 throw new Error("SIP not registered — can't receive calls from Asterisk");
             }
 
-            // Pre-flight: check if telephony service is ready
+            // Pre-flight: check if telephony service is ready & extension is available
             const statusCheck = await api.getTelephonyStatus();
-            if (statusCheck.success && statusCheck.data && !statusCheck.data.ready_to_call) {
-                const trunkState = statusCheck.data.trunk_info?.state || 'unknown';
-                throw new Error(`Telephony service not ready — trunk is ${trunkState}. Contact admin.`);
+            if (statusCheck.success && statusCheck.data) {
+                if (!statusCheck.data.ready_to_call) {
+                    const trunkState = statusCheck.data.trunk_info?.state || 'unknown';
+                    throw new Error(`Telephony service not ready — trunk is ${trunkState}. Contact admin.`);
+                }
+
+                // Check if our extension is online
+                const extId = agentId || process.env.NEXT_PUBLIC_SIP_USERNAME || '101';
+                const ourExt = statusCheck.data.all_endpoints?.find(
+                    (ep) => ep.resource === extId
+                );
+                if (ourExt && ourExt.state !== 'online') {
+                    throw new Error(`Extension ${extId} is ${ourExt.state}. Please wait for SIP to reconnect.`);
+                }
             }
 
             // Step 1: Hit REST API to trigger Asterisk origination
@@ -394,16 +451,22 @@ export function useTelephony() {
             // Unsubscribe from socket events
             telephonySocket.unsubscribeFromCall();
 
-            // Hangup SIP session (WebRTC side)
-            if (sipClient.hasActiveSession()) {
-                await sipClient.hangup();
+            // IMPORTANT: Tell the server to hangup FIRST so Asterisk releases the channel
+            // before we tear down the SIP session locally.
+            try {
+                const result = await api.hangupCall(callId);
+                // Per Integration Guide: DELETE returning 404 means call already ended
+                // (customer hung up first). Treat as success.
+                if (!result.success && (result as any).code === 'NOT_FOUND') {
+                    console.log('[Telephony] Call already ended (404) — treating as success');
+                }
+            } catch (e) {
+                console.warn('[Telephony] Server hangup failed (call may already be ended):', e);
             }
 
-            // Also tell the telephony service to hangup (server side)
-            try {
-                await api.hangupCall(callId);
-            } catch (e) {
-                console.warn("[Telephony] Server hangup failed (call may already be ended):", e);
+            // Then hangup SIP session (WebRTC side)
+            if (sipClient.hasActiveSession()) {
+                await sipClient.hangup();
             }
 
             return { success: true };
@@ -412,12 +475,16 @@ export function useTelephony() {
             sounds.stop();
             setCurrentCall(null);
             setIsMuted(false);
+            callEstablishedRef.current = false;
+            lastCallEndedRef.current = Date.now();
         },
         onError: () => {
             sounds.stop();
             // Force cleanup even on error
             setCurrentCall(null);
             setIsMuted(false);
+            callEstablishedRef.current = false;
+            lastCallEndedRef.current = Date.now();
         }
     });
 
