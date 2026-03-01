@@ -239,8 +239,7 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                                     unlockAudio();
                                                     initiateCall({
                                                         destination: contract?.customer_phone || "",
-                                                        agentId: "agent1",
-                                                        callerId: "101"
+                                                        agentId: "101",
                                                     });
                                                     setShowCallConfirm(false);
                                                 }}
