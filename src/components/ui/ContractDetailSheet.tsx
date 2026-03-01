@@ -252,37 +252,44 @@ export default function ContractDetailSheet({ contract, isOpen, onClose, onEdit 
                                     </motion.div>
                                 </AnimatePresence>
                             ) : contract?.customer_phone ? (
-                                <button
-                                    onClick={() => setShowCallConfirm(true)}
-                                    disabled={isCalling || sipState !== 'registered'}
-                                    className={`w-full py-3.5 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-3 group relative overflow-hidden ${sipState === 'registered'
-                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98]'
-                                        : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 shadow-none'
-                                        }`}
-                                >
-                                    {sipState === 'registered' && (
-                                        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
-                                    )}
+                                (contract.contractNo === '99999999' || contract.ccontract_no === '99999999') ? (
+                                    <button
+                                        onClick={() => setShowCallConfirm(true)}
+                                        disabled={isCalling || sipState !== 'registered'}
+                                        className={`w-full py-3.5 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-3 group relative overflow-hidden ${sipState === 'registered'
+                                            ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white hover:from-emerald-500 hover:to-teal-400 active:scale-[0.98]'
+                                            : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700 shadow-none'
+                                            }`}
+                                    >
+                                        {sipState === 'registered' && (
+                                            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
+                                        )}
 
-                                    {isCalling ? (
-                                        <>
-                                            <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            Dialing...
-                                        </>
-                                    ) : sipState !== 'registered' ? (
-                                        <>
-                                            <Phone className="h-5 w-5" />
-                                            {sipState === 'failed' ? 'SIP Auth Failed' : sipState === 'reconnecting' ? 'SIP Reconnecting...' : sipState === 'disconnected' ? 'SIP Offline' : 'Connecting SIP...'}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="rounded-full bg-white/20 p-1 group-hover:bg-white/30 transition-colors">
-                                                <Phone className="h-4 w-4 text-white" />
-                                            </div>
-                                            Call Customer ({contract.customer_phone})
-                                        </>
-                                    )}
-                                </button>
+                                        {isCalling ? (
+                                            <>
+                                                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                Dialing...
+                                            </>
+                                        ) : sipState !== 'registered' ? (
+                                            <>
+                                                <Phone className="h-5 w-5" />
+                                                {sipState === 'failed' ? 'SIP Auth Failed' : sipState === 'reconnecting' ? 'SIP Reconnecting...' : sipState === 'disconnected' ? 'SIP Offline' : 'Connecting SIP...'}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="rounded-full bg-white/20 p-1 group-hover:bg-white/30 transition-colors">
+                                                    <Phone className="h-4 w-4 text-white" />
+                                                </div>
+                                                Call Customer ({contract.customer_phone})
+                                            </>
+                                        )}
+                                    </button>
+                                ) : (
+                                    <div className="w-full py-3.5 rounded-xl bg-orange-500/10 text-orange-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-orange-500/20">
+                                        <AlertCircle className="h-5 w-5" />
+                                        Testing Mode: Only Contract 99999999 Allowed
+                                    </div>
+                                )
                             ) : (
                                 <div className="w-full py-3.5 rounded-xl bg-slate-800/50 text-slate-500 font-semibold flex items-center justify-center gap-2 cursor-not-allowed border border-slate-700/50">
                                     <AlertCircle className="h-5 w-5" />
