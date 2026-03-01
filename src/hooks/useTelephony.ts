@@ -328,7 +328,7 @@ export function useTelephony() {
             // Step 1: Hit REST API to trigger Asterisk origination
             const response = await api.initiateCall(
                 destination,
-                agentId || 'agent1',
+                agentId || process.env.NEXT_PUBLIC_SIP_USERNAME || '101',
                 { callerId, timeout: 30 }
             );
 
@@ -366,7 +366,7 @@ export function useTelephony() {
                 const session: CallSession = {
                     id: data.data.id,
                     destination: data.data.destination,
-                    callerId: data.data.callerId || 'agent1',
+                    callerId: data.data.callerId || process.env.NEXT_PUBLIC_SIP_USERNAME || '101',
                     state: data.data.state || 'Initiated',
                     startedAt: new Date().toISOString()
                 };
@@ -433,7 +433,7 @@ export function useTelephony() {
      * Also initialises the AudioContext used by sounds (ringing, dialing) and analysers.
      */
     const unlockAudio = useCallback(() => {
-        if (audioRef.current) audioRef.current.play().catch(() => {});
+        if (audioRef.current) audioRef.current.play().catch(() => { });
         sounds.init();
         sipClient.initAudioContext();
     }, []);

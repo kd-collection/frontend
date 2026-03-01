@@ -26,8 +26,18 @@ async function handler(req: NextRequest, { params }: { params: Promise<{ path: s
         const data = response.status === 204 ? {} : await response.json().catch(() => ({}));
 
         if (!response.ok) {
+            // Forward the full error body from upstream so FE can handle specific error codes
+            // (e.g., TRUNK_OFFLINE, ARI_DISCONNECTED, ORIGINATE_TIMEOUT, requestId)
             return NextResponse.json(
-                { success: false, message: data.message || `Upstream Error: ${response.statusText}` },
+                {
+                    success: false,
+                    message: data.message || `Upstream Error: ${response.statusText}`,
+                    error: data.error,
+                    code: data.code,
+                    requestId: data.requestId,
+                    details: data.details,       // Validation errors
+                    trunk_status: data.trunk_status, // Trunk offline details
+                },
                 { status: response.status }
             );
         }

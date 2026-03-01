@@ -24,6 +24,7 @@ export interface CallEvent {
 class TelephonySocket {
     private socket: Socket | null = null;
     private subscribedCallId: string | null = null;
+    private lastSeq: number = 0;
 
     // Callback for call events
     public onCallEvent: ((event: CallEvent) => void) | null = null;
@@ -50,6 +51,12 @@ class TelephonySocket {
             console.log(SOCKET_LOG_PREFIX, '✅ Connected — socket id:', this.socket?.id);
             this.onConnectionChange?.(true);
 
+            // Replay missed events if we have a lastSeq (reconnection scenario)
+            if (this.lastSeq > 0) {
+                console.log(SOCKET_LOG_PREFIX, `Replaying events after seq ${this.lastSeq}...`);
+                this.socket?.emit('replay', this.lastSeq);
+            }
+
             // Re-subscribe if we had a subscription before reconnect
             if (this.subscribedCallId) {
                 this.subscribeToCall(this.subscribedCallId);
@@ -65,10 +72,26 @@ class TelephonySocket {
             console.error(SOCKET_LOG_PREFIX, 'Connection error:', error.message);
         });
 
+        // Server sends current sequence number on connect
+        this.socket.on('call:seq', ({ seq }: { seq: number }) => {
+            console.log(SOCKET_LOG_PREFIX, 'Current server seq:', seq);
+            this.lastSeq = seq;
+        });
+
         // Listen for call events
         this.socket.on('call:event', (event: CallEvent) => {
             console.log(SOCKET_LOG_PREFIX, '📞 Call event:', event.type, '| callId:', event.callId);
             this.onCallEvent?.(event);
+        });
+
+        // Handle replayed events (catch-up after reconnection)
+        this.socket.on('call:replay', ({ currentSeq, events }: { currentSeq: number; events: Array<{ seq: number; event: CallEvent }> }) => {
+            console.log(SOCKET_LOG_PREFIX, `Replayed ${events.length} missed events (server seq: ${currentSeq})`);
+            events.forEach(({ seq, event }) => {
+                this.onCallEvent?.(event);
+                this.lastSeq = seq;
+            });
+            this.lastSeq = currentSeq;
         });
     }
 
@@ -103,6 +126,7 @@ class TelephonySocket {
      */
     disconnect() {
         this.subscribedCallId = null;
+        this.lastSeq = 0;
         if (this.socket) {
             this.socket.disconnect();
             this.socket = null;
@@ -111,6 +135,10 @@ class TelephonySocket {
 
     get isConnected(): boolean {
         return this.socket?.connected ?? false;
+    }
+
+    get currentSeq(): number {
+        return this.lastSeq;
     }
 }
 

@@ -11,6 +11,8 @@ interface ApiResponse<T> {
     message?: string;
     error?: string;
     code?: string;  // Error code from telephony API: TRUNK_OFFLINE, ARI_DISCONNECTED, ORIGINATE_TIMEOUT
+    requestId?: string;  // Unique request ID for error tracking
+    details?: any[];     // Validation error details
 }
 
 class ApiClient {
@@ -190,7 +192,7 @@ class ApiClient {
         };
     }
 
-    async initiateCall(destination: string, agentId: string = 'agent1', options?: { callerId?: string; webhookUrl?: string; timeout?: number }) {
+    async initiateCall(destination: string, agentId: string = '101', options?: { callerId?: string; timeout?: number }) {
         const response = await this.request<{ message: string; call: CallSession } | any>('/call', {
             method: 'POST',
             headers: this.telephonyHeaders,
@@ -198,7 +200,6 @@ class ApiClient {
                 destination,
                 agentId,
                 callerId: options?.callerId,
-                webhookUrl: options?.webhookUrl,
                 timeout: options?.timeout || 30
             }),
         }, this.telephonyUrl) as any;
@@ -244,7 +245,7 @@ class ApiClient {
     }
 
     async getActiveCalls() {
-        const response = await this.request<{ count: number; calls: CallSession[] } | any>('/calls', {
+        const response = await this.request<{ count: number; calls: CallSession[] } | any>('/calls/active', {
             headers: this.telephonyHeaders
         }, this.telephonyUrl) as any;
 
@@ -252,6 +253,31 @@ class ApiClient {
             return { success: true, data: response.calls };
         }
         return { success: false, message: 'Invalid response format', data: [] };
+    }
+
+    async getCallHistory(page: number = 1, limit: number = 20) {
+        const response = await this.request<{ calls: CallSession[]; pagination: any } | any>(`/calls/history?page=${page}&limit=${limit}`, {
+            headers: this.telephonyHeaders
+        }, this.telephonyUrl) as any;
+
+        if (response && 'calls' in response) {
+            return { success: true, data: response.calls, pagination: response.pagination };
+        }
+        return { success: false, message: 'Invalid response format', data: [] };
+    }
+
+    async getEvents(afterSeq: number = 0, callId?: string) {
+        const params = new URLSearchParams({ afterSeq: afterSeq.toString() });
+        if (callId) params.append('callId', callId);
+
+        const response = await this.request<{ currentSeq: number; events: any[] } | any>(`/events?${params.toString()}`, {
+            headers: this.telephonyHeaders
+        }, this.telephonyUrl) as any;
+
+        if (response && 'currentSeq' in response) {
+            return { success: true, data: response };
+        }
+        return { success: false, message: 'Invalid response format', data: { currentSeq: 0, events: [] } };
     }
 }
 
@@ -374,14 +400,17 @@ export interface CallSession {
 export interface TelephonyStatus {
     service: string;
     ready_to_call: boolean;
-    diagnosis: string;
+    diagnosis?: string;
     active_calls: number;
     trunk_info?: {
         state: string;
         resource: string;
         technology: string;
+        registration?: {
+            status: string;
+        };
     } | null;
-    all_endpoints: any[];
+    all_endpoints: Array<{ resource: string; state: string }>;
 }
 
 // Export singleton instance
